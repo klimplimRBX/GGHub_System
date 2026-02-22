@@ -265,7 +265,15 @@ end
 MainFrame:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateGlow)
 MainFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateGlow)
 
-local glowState = {enabled = false, intensity = 0.5}
+local glowState = {enabled = false, intensity = 1}
+local _savedGlowPath = "GGHub/GlowPreference.json"
+if isfile(_savedGlowPath) then
+    local ok, data = pcall(HttpService.JSONDecode, HttpService, readfile(_savedGlowPath))
+    if ok and data then
+        if type(data.enabled) == "boolean" then glowState.enabled = data.enabled end
+        if type(data.intensity) == "number" then glowState.intensity = math.clamp(data.intensity, 0, 1) end
+    end
+end
 
 local function applyGlowIntensity(intensity, duration)
 	duration = duration or 0
