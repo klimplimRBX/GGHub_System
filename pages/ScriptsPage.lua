@@ -252,11 +252,11 @@ return function(ctx)
 		AutoDoomTowerRunning = true
 		task.spawn(function()
 
-			local TOWER_POS = Vector3.new(4318, 7.0, 0.3)
-			local TOWER_UNDER_Y = -25
+			local TOWER_POS = Vector3.new(4325, 6.3, -2.5)
+			local TOWER_UNDER_Y = -20
 			local BRAINROT_UNDER_Y = -20
 			local function towerFlyTo(targetPos, speed)
-				speed = speed or 4000
+				speed = speed or 1200
 				local root, humanoid = getCharacterRoots()
 				if not isCharacterAlive(root, humanoid) then return false end
 				while (root.Position - targetPos).Magnitude > 1.5 do
@@ -328,7 +328,7 @@ return function(ctx)
 				if (root.Position - TOWER_POS).Magnitude >= 3 then
 					acquireMoveLock()
 					local ok = pcall(function()
-						underMapFlyTo(TOWER_POS, TOWER_UNDER_Y, 1500)
+						underMapFlyTo(TOWER_POS, TOWER_UNDER_Y, 1300)
 					end)
 					releaseMoveLock()
 					if not ok then showNotification("Movement error going to tower!") AutoDoomTowerRunning = false return end
@@ -443,37 +443,57 @@ return function(ctx)
 				pcall(function()
 					local root = getCharacterRoots()
 					if not root then return end
-					towerFlyTo(Vector3.new(root.Position.X, BRAINROT_UNDER_Y, root.Position.Z), 1500)
+					towerFlyTo(Vector3.new(root.Position.X, BRAINROT_UNDER_Y, root.Position.Z), 1200)
 					task.wait(0.01)
-					towerFlyTo(Vector3.new(pos.X, BRAINROT_UNDER_Y, pos.Z), 1500)
+					towerFlyTo(Vector3.new(pos.X, BRAINROT_UNDER_Y, pos.Z), 1200)
 					task.wait(0.01)
-					towerFlyTo(Vector3.new(pos.X, pos.Y, pos.Z), 1500)
+					towerFlyTo(Vector3.new(pos.X, pos.Y, pos.Z), 1200)
 				end)
 
-				task.wait(0.1)
+				task.wait(0.8)
 				pcall(activateNearestInstant)
 
 				pcall(function()
 					local root = getCharacterRoots()
 					if not root then return end
-					towerFlyTo(Vector3.new(root.Position.X, BRAINROT_UNDER_Y, root.Position.Z), 1500)
+					towerFlyTo(Vector3.new(root.Position.X, BRAINROT_UNDER_Y, root.Position.Z), 1200)
 					task.wait(0.01)
-					towerFlyTo(Vector3.new(4318, BRAINROT_UNDER_Y, 0.3), 1500)
+					towerFlyTo(Vector3.new(4325, BRAINROT_UNDER_Y, -2.5), 1200)
 					task.wait(0.01)
-					towerFlyTo(TOWER_POS, 1500)
+					towerFlyTo(TOWER_POS, 1200)
 				end)
 				releaseMoveLock()
 
-				holdTowerPrompt()
+				local root = getCharacterRoots()
+				if root then root.Anchored = true end
+				pcall(function()
+					towerPrompt:InputHoldBegin()
+					task.wait(0.1)
+					towerPrompt:InputHoldEnd()
+				end)
+				if root then root.Anchored = false end
+
+				task.wait(1)
 
 				local current, max = depositsLabel.Text:match("(%d+)/(%d+)")
 				current = tonumber(current) or 0
-				max = tonumber(max) or 10
+				max     = tonumber(max) or 10
 
 				if current >= max then
 					showNotification("Complete!")
 					AutoDoomTowerRunning = false
 					return
+				end
+
+				local newKeyword
+				for _, kw in ipairs(keywords) do
+					if requirementLabel.Text:find(kw) then
+						newKeyword = kw
+						break
+					end
+				end
+				if newKeyword and newKeyword ~= foundKeyword then
+					foundKeyword = newKeyword
 				end
 
 				task.wait(0.1)
