@@ -267,7 +267,7 @@ return function(ctx)
 end
 
 	createButton(settingsPage, "Valentine Event Script", "Goes to the valentine event GGHub version", function()
-		loadOldScript("PLACEHOLDER_URL_1")
+		loadOldScript("raw.githubusercontent.com/klimplimRBX/GGHub/main/GGHubValentinesEvent.lua")
 	end)
 
 	createButton(settingsPage, "Arcade Event Script", "Goes to the arcade event GGHub version", function()
@@ -278,3 +278,4 @@ end
 		loadOldScript("PLACEHOLDER_URL_3")
 	end)
 end
+
