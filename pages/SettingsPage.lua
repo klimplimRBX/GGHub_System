@@ -28,6 +28,7 @@ return function(ctx)
 	local _savedCustomH = ctx.theme.customH
 	local _savedCustomS = ctx.theme.customS
 	local _savedCustomV = ctx.theme.customV
+	local RunService = ctx.RunService
 
 	createDropdown(settingsPage, "Theme",
 		{"Default", "Crimson", "Evergreen", "Yellow", "Navy Blue", "Cosmic Purple", "Pink Flakes", "True Black", "Amber", "Custom"},
@@ -153,14 +154,17 @@ return function(ctx)
 		glowSliderWrapper.Size = UDim2.new(1, 0, 0, 0)
 	end
 
-	local _keybind = Enum.KeyCode.RightControl
+	local _keybind = ctx.kb.key
 	local _bindingMode = false
 	local _savedKeybindPath = "GGHub/KeybindPreference.json"
 
 	if isfile(_savedKeybindPath) then
 		local ok, data = pcall(game:GetService("HttpService").JSONDecode, game:GetService("HttpService"), readfile(_savedKeybindPath))
 		if ok and data and data.key then
-			pcall(function() _keybind = Enum.KeyCode[data.key] end)
+			pcall(function()
+				_keybind = Enum.KeyCode[data.key]
+				ctx.kb.key = _keybind
+			end)
 		end
 	end
 
@@ -238,7 +242,39 @@ return function(ctx)
 			return
 		end
 		if input.KeyCode == _keybind then
-			if ctx.uiOpen then ctx.closeUI() else ctx.openUI() end
+			if ctx.state.uiOpen then ctx.closeUI() else ctx.openUI() end
+		end
+	end)
+
+	local NoclipEnabled = false
+
+	createToggle(settingsPage, "Noclip", "Walk through walls", function(enabled)
+		NoclipEnabled = enabled
+		if enabled then
+			showNotification("Noclip Enabled")
+			task.spawn(function()
+				while NoclipEnabled do
+					local character = game.Players.LocalPlayer.Character
+					if character then
+						for _, part in ipairs(character:GetDescendants()) do
+							if part:IsA("BasePart") then
+								part.CanCollide = false
+							end
+						end
+					end
+					RunService.Stepped:Wait()
+				end
+			end)
+		else
+			showNotification("Noclip Disabled")
+			local character = game.Players.LocalPlayer.Character
+			if character then
+				for _, part in ipairs(character:GetDescendants()) do
+					if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+						part.CanCollide = true
+					end
+				end
+			end
 		end
 	end)
 
