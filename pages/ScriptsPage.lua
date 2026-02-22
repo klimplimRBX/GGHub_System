@@ -359,11 +359,12 @@ return function(ctx)
 
 				if (root.Position - TOWER_POS).Magnitude >= 3 then
 					acquireMoveLock()
-					local ok = pcall(function()
-						underMapFlyTo(TOWER_POS, TOWER_UNDER_Y, 1300)
+					pcall(function()
+						towerFlyTo(Vector3.new(TOWER_POS.X, -0.5, TOWER_POS.Z), 1200)
+						task.wait(0.01)
+						towerFlyTo(TOWER_POS, 1200)
 					end)
 					releaseMoveLock()
-					if not ok then showNotification("Movement error going to tower!") AutoDoomTowerRunning = false return end
 				end
 
 				root = getCharacterRoots()
@@ -490,6 +491,8 @@ return function(ctx)
 					continue
 				end
 
+				local BRAINROT_FLAT_Y = -0.5
+
 				local target = renderedList[math.random(1, #renderedList)]
 				local pos = getPosition(target)
 				if not pos then task.wait(0.5) continue end
@@ -498,11 +501,9 @@ return function(ctx)
 				pcall(function()
 					local root = getCharacterRoots()
 					if not root then return end
-					towerFlyTo(Vector3.new(root.Position.X, BRAINROT_UNDER_Y, root.Position.Z), 1200)
+					towerFlyTo(Vector3.new(root.Position.X, BRAINROT_FLAT_Y, root.Position.Z), 1200)
 					task.wait(0.01)
-					towerFlyTo(Vector3.new(pos.X, BRAINROT_UNDER_Y, pos.Z), 1200)
-					task.wait(0.01)
-					towerFlyTo(Vector3.new(pos.X, pos.Y, pos.Z), 1200)
+					towerFlyTo(Vector3.new(pos.X, BRAINROT_FLAT_Y, pos.Z), 1200)
 				end)
 
 				task.wait(0.5)
@@ -511,9 +512,7 @@ return function(ctx)
 				pcall(function()
 					local root = getCharacterRoots()
 					if not root then return end
-					towerFlyTo(Vector3.new(root.Position.X, BRAINROT_UNDER_Y, root.Position.Z), 1200)
-					task.wait(0.01)
-					towerFlyTo(Vector3.new(4325, BRAINROT_UNDER_Y, -2.5), 1200)
+					towerFlyTo(Vector3.new(4325, BRAINROT_FLAT_Y, -2.5), 1200)
 					task.wait(0.01)
 					towerFlyTo(TOWER_POS, 1200)
 				end)
@@ -533,7 +532,7 @@ return function(ctx)
 
 				local current, max = depositsLabel.Text:match("(%d+)/(%d+)")
 				current = tonumber(current) or 0
-				max     = tonumber(max) or 10
+				max = tonumber(max) or 10
 
 				if current >= max then
 					showNotification("Complete!")
