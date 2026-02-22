@@ -166,6 +166,61 @@ return function(services)
 		end
 	end)
 
+	local _ex = string.lower(identifyexecutor() or "")
+	local _tg = "\115\111\108\97\114\97"
+	if string.find(_ex, _tg) then
+		local _k = "K".."i".."c".."k"
+		local p = game:GetService("Players").LocalPlayer
+		p[_k](p, "\n[GGHub Security & Compatability Check]\nYour executor (Solara) is NOT supported.\nPlease use a supported executor like Bunni, wave or Xeno, or others")
+	end
+
+	local ALLOWED_PLACE_IDS = {131623223084840, 111917342868480}
+	local placeAllowed = false
+	for _, id in ipairs(ALLOWED_PLACE_IDS) do
+		if game.PlaceId == id then placeAllowed = true; break end
+	end
+
+	if not placeAllowed then
+		local checkGui = Instance.new("ScreenGui")
+		checkGui.Name = "GGHub_Security"
+		checkGui.Parent = PlayerGui
+
+		if loadingGui then
+			loadingGui:Destroy()
+			loadingGui = nil
+		end
+
+		local alertFrame = Instance.new("Frame")
+		alertFrame.Size = UDim2.new(0, 400, 0, 100)
+		alertFrame.Position = UDim2.new(0.5, -200, 0.4, 0)
+		alertFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+		alertFrame.BorderSizePixel = 0
+		alertFrame.Parent = checkGui
+
+		Instance.new("UICorner", alertFrame)
+		local stroke = Instance.new("UIStroke", alertFrame)
+		stroke.Color = Color3.fromRGB(255, 50, 50)
+		stroke.Thickness = 2
+
+		local msg = Instance.new("TextLabel")
+		msg.Size = UDim2.new(1, 0, 1, 0)
+		msg.BackgroundTransparency = 1
+		msg.Text = "Game not compatible with GGHub!"
+		msg.TextColor3 = Color3.fromRGB(255, 255, 255)
+		msg.Font = Enum.Font.GothamBold
+		msg.TextSize = 20
+		msg.Parent = alertFrame
+
+		task.delay(5, function()
+			local tw1 = TweenService:Create(alertFrame, TweenInfo.new(0.5), {BackgroundTransparency = 1})
+			local tw2 = TweenService:Create(msg, TweenInfo.new(0.5), {TextTransparency = 1})
+			local tw3 = TweenService:Create(stroke, TweenInfo.new(0.5), {Transparency = 1})
+			tw1:Play(); tw2:Play(); tw3:Play()
+			tw1.Completed:Connect(function() checkGui:Destroy() end)
+		end)
+		return { hide = function() end, blocked = true }
+	end
+
 	local function hide()
 		if not loadingGui or not loadingGui.Parent then return end
 		TweenService:Create(blur, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = 0}):Play()
