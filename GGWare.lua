@@ -959,6 +959,10 @@ if isfile(_savedGlowPath) then
     end
 end
 
+if glowState.enabled then
+    _toggleStates["Glow Effect"] = true
+end
+
 task.spawn(function()
 	task.wait(2.4)
 
