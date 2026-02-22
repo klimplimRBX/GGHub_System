@@ -310,13 +310,9 @@ return function(ctx)
 					end
 				end
 				if nearestPrompt then
-					if shortestDist <= nearestPrompt.MaxActivationDistance then
-						nearestPrompt:InputHoldBegin()
-						task.wait(nearestPrompt.HoldDuration + 0.05)
-						nearestPrompt:InputHoldEnd()
-					else
-						showNotification("Nearest prompt is out of range!")
-					end
+					nearestPrompt:InputHoldBegin()
+					task.wait(nearestPrompt.HoldDuration + 0.05)
+					nearestPrompt:InputHoldEnd()
 				end
 			end
 
@@ -518,3 +514,4 @@ return function(ctx)
 		end) 
 	end)
 end
+
