@@ -234,38 +234,6 @@ local glowIntensity = ctx.glow.intensity
 		end
 	end)
 
-	local NoclipEnabled = false
-
-	createToggle(settingsPage, "Noclip", "Walk through walls", function(enabled)
-		NoclipEnabled = enabled
-		if enabled then
-			showNotification("Noclip Enabled")
-			task.spawn(function()
-				while NoclipEnabled do
-					local character = game.Players.LocalPlayer.Character
-					if character then
-						for _, part in ipairs(character:GetDescendants()) do
-							if part:IsA("BasePart") then
-								part.CanCollide = false
-							end
-						end
-					end
-					RunService.Stepped:Wait()
-				end
-			end)
-		else
-			showNotification("Noclip Disabled")
-			local character = game.Players.LocalPlayer.Character
-			if character then
-				for _, part in ipairs(character:GetDescendants()) do
-					if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-						part.CanCollide = true
-					end
-				end
-			end
-		end
-	end)
-
 	createButton(settingsPage, "Save Settings", "Saves everything from this section", function()
 		saveToggleStates()
 		showNotification("Settings saved!")
@@ -280,4 +248,33 @@ local glowIntensity = ctx.glow.intensity
 	end)
 end
 
+local function loadOldScript(url)
+    if getgenv().__GGHub_Cleanup then
+        for _, fn in ipairs(getgenv().__GGHub_Cleanup) do
+            pcall(fn)
+        end
+    end
+    getgenv().__GGHub_Running = false
+    getgenv().__GGHub_Notify = nil
+    getgenv().__GGHub_Cleanup = nil
+    local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+    for _, g in ipairs(playerGui:GetChildren()) do
+        if g:IsA("ScreenGui") then
+            pcall(function() g:Destroy() end)
+        end
+    end
+    task.wait(0.1)
+    loadstring(game:HttpGet(url))()
+end
 
+createButton(settingsPage, "Valentine Event Script", "Goes to the valentine event GGHub version", function()
+    loadOldScript("PLACEHOLDER_URL_1")
+end)
+
+createButton(settingsPage, "Arcade Event Script", "Goes to the arcade event GGHub version", function()
+    loadOldScript("PLACEHOLDER_URL_2")
+end)
+
+createButton(settingsPage, "Money Event Script", "Goes to the Money event GGHub version", function()
+    loadOldScript("PLACEHOLDER_URL_3")
+end)
