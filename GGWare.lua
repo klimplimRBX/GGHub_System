@@ -942,6 +942,15 @@ end)
 -- LOADING BAR FUNC - If you have seen this, know that GGHub loads in like 0.5s, but Just to make It more cooler and Professional i extended It a lil
 -- =================================================================================================================
 
+local _savedGlowPath = "GGHub/GlowPreference.json"
+if isfile(_savedGlowPath) then
+    local ok, data = pcall(HttpService.JSONDecode, HttpService, readfile(_savedGlowPath))
+    if ok and data then
+        if type(data.enabled) == "boolean" then glowState.enabled = data.enabled end
+        if type(data.intensity) == "number" then glowState.intensity = math.clamp(data.intensity, 0, 1) end
+    end
+end
+
 task.spawn(function()
 	task.wait(2.4)
 
