@@ -63,8 +63,9 @@ return function(ctx)
 	)
 
 	local glowEnabled = ctx.glow.enabled
-local glowIntensity = ctx.glow.intensity
-	
+	local glowIntensity = ctx.glow.intensity
+	local _savedGlowPath = "GGHub/GlowPreference.json"
+
 	local function saveGlowPrefs()
 		pcall(function()
 			if not isfolder("GGHub") then makefolder("GGHub") end
@@ -246,36 +247,35 @@ local glowIntensity = ctx.glow.intensity
 		end)
 		showNotification("Settings cleared!")
 	end)
-end
 
-local function loadOldScript(url)
-    if getgenv().__GGHub_Cleanup then
-        for _, fn in ipairs(getgenv().__GGHub_Cleanup) do
-            pcall(fn)
-        end
-    end
-    getgenv().__GGHub_Running = false
-    getgenv().__GGHub_Notify = nil
-    getgenv().__GGHub_Cleanup = nil
-    local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
-    for _, g in ipairs(playerGui:GetChildren()) do
-        if g:IsA("ScreenGui") then
-            pcall(function() g:Destroy() end)
-        end
-    end
-    task.wait(0.1)
-    loadstring(game:HttpGet(url))()
-  end
+	local function loadOldScript(url)
+		if getgenv().__GGHub_Cleanup then
+			for _, fn in ipairs(getgenv().__GGHub_Cleanup) do
+				pcall(fn)
+			end
+		end
+		getgenv().__GGHub_Running = false
+		getgenv().__GGHub_Notify = nil
+		getgenv().__GGHub_Cleanup = nil
+		local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+		for _, g in ipairs(playerGui:GetChildren()) do
+			if g:IsA("ScreenGui") then
+				pcall(function() g:Destroy() end)
+			end
+		end
+		task.wait(0.1)
+		loadstring(game:HttpGet(url))()
+	end
 
-createButton(settingsPage, "Valentine Event Script", "Goes to the valentine event GGHub version", function()
-    loadOldScript("PLACEHOLDER_URL_1")
-  end)
+	createButton(settingsPage, "Valentine Event Script", "Goes to the valentine event GGHub version", function()
+		loadOldScript("PLACEHOLDER_URL_1")
+	end)
 
-createButton(settingsPage, "Arcade Event Script", "Goes to the arcade event GGHub version", function()
-    loadOldScript("PLACEHOLDER_URL_2")
-  end)
+	createButton(settingsPage, "Arcade Event Script", "Goes to the arcade event GGHub version", function()
+		loadOldScript("PLACEHOLDER_URL_2")
+	end)
 
-createButton(settingsPage, "Money Event Script", "Goes to the Money event GGHub version", function()
-    loadOldScript("PLACEHOLDER_URL_3")
-  end)
+	createButton(settingsPage, "Money Event Script", "Goes to the Money event GGHub version", function()
+		loadOldScript("PLACEHOLDER_URL_3")
+	end)
 end
