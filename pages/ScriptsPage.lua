@@ -238,21 +238,65 @@ return function(ctx)
 		end
 	end)
 
+	local AutoDoomTowerRunning = false
+	table.insert(getgenv().__GGHub_Cleanup, function()
+		AutoDoomTowerRunning = false
+	end)
+
 	createButton(scriptPage, "Auto Doom Tower", "Completes the Doom Tower Automatically for you", function()
+		if AutoDoomTowerRunning then
+			AutoDoomTowerRunning = false
+			showNotification("Auto Doom Tower stopped.")
+			return
+		end
+		AutoDoomTowerRunning = true
 		task.spawn(function()
-			local function doomFlyTo(targetPos)
+
+			local TOWER_POS = Vector3.new(4318, 7.0, 0.3)
+			local TOWER_UNDER_Y = -25
+			local BRAINROT_UNDER_Y = -20
+			local function towerFlyTo(targetPos, speed)
+				speed = speed or 4000
+				local root, humanoid = getCharacterRoots()
+				if not isCharacterAlive(root, humanoid) then return false end
+				while (root.Position - targetPos).Magnitude > 1.5 do
+					if not AutoDoomTowerRunning then return false end
+					local dt = RunService.Heartbeat:Wait()
+					if not isCharacterAlive(root, humanoid) then return false end
+					local remaining = (targetPos - root.Position)
+					local step = math.min(speed * dt, remaining.Magnitude)
+					root.CFrame = root.CFrame + remaining.Unit * step
+					root.AssemblyLinearVelocity = Vector3.zero
+				end
+				if isCharacterAlive(root, humanoid) then
+					root.CFrame = CFrame.new(targetPos)
+					root.AssemblyLinearVelocity = Vector3.zero
+					root.AssemblyAngularVelocity = Vector3.zero
+				end
+				return true
+			end
+
+			local function underMapFlyTo(targetPos, underY, speed)
 				local root = getCharacterRoots()
-				if not root then return end
-				flyToPos(Vector3.new(root.Position.X, -25, root.Position.Z), 2000)
+				if not root then return false end
+				local ok = true
+				ok = ok and towerFlyTo(Vector3.new(root.Position.X, underY, root.Position.Z), speed)
 				task.wait(0.01)
-				flyToPos(Vector3.new(targetPos.X, -25, targetPos.Z), 2000)
+				ok = ok and towerFlyTo(Vector3.new(targetPos.X, underY, targetPos.Z), speed)
 				task.wait(0.01)
-				flyToPos(targetPos, 2000)
+				ok = ok and towerFlyTo(targetPos, speed)
+				return ok
 			end
 
 			local function activateNearestInstant()
 				local root = getCharacterRoots()
 				if not root then return end
+				for _, obj in ipairs(workspace:GetDescendants()) do
+					if obj:IsA("ProximityPrompt") and obj.Enabled then
+						obj.HoldDuration = 0
+					end
+				end
+
 				local nearestPrompt, shortestDist = nil, math.huge
 				for _, obj in ipairs(workspace:GetDescendants()) do
 					if obj:IsA("ProximityPrompt") and obj.Enabled then
@@ -266,23 +310,37 @@ return function(ctx)
 						end
 					end
 				end
-				if nearestPrompt and shortestDist <= nearestPrompt.MaxActivationDistance then
-					nearestPrompt.HoldDuration = 0
-					nearestPrompt:InputHoldBegin()
-					task.wait(0.05)
-					nearestPrompt:InputHoldEnd()
+				if nearestPrompt then
+					if shortestDist <= nearestPrompt.MaxActivationDistance then
+						nearestPrompt:InputHoldBegin()
+						task.wait(nearestPrompt.HoldDuration + 0.05)
+						nearestPrompt:InputHoldEnd()
+					else
+						showNotification("Nearest prompt is out of range!")
+					end
 				end
 			end
 
-			local function holdTowerPrompt(prompt)
-				prompt:InputHoldBegin()
-				task.wait(2)
-				prompt:InputHoldEnd()
-			end
+			do
+				local root = getCharacterRoots()
+				if not root then showNotification("No character found!") AutoDoomTowerRunning = false return end
 
-			acquireMoveLock()
-			pcall(doomFlyTo, Vector3.new(4319, 7.0, 0.3))
-			releaseMoveLock()
+				if (root.Position - TOWER_POS).Magnitude >= 3 then
+					acquireMoveLock()
+					local ok = pcall(function()
+						underMapFlyTo(TOWER_POS, TOWER_UNDER_Y, 4000)
+					end)
+					releaseMoveLock()
+					if not ok then showNotification("Movement error going to tower!") AutoDoomTowerRunning = false return end
+				end
+
+				root = getCharacterRoots()
+				if not root or (root.Position - TOWER_POS).Magnitude >= 3 then
+					showNotification("Failed to reach tower position!")
+					AutoDoomTowerRunning = false
+					return
+				end
+			end
 
 			local towerPrompt
 			pcall(function()
@@ -290,10 +348,31 @@ return function(ctx)
 			end)
 			if not towerPrompt then
 				showNotification("Tower prompt not found!")
+				AutoDoomTowerRunning = false
 				return
 			end
 
-			pcall(holdTowerPrompt, towerPrompt)
+			local function holdTowerPrompt()
+				local root = getCharacterRoots()
+				if root then root.Anchored = true end
+				local activated = false
+				pcall(function()
+					towerPrompt:InputHoldBegin()
+					task.wait(2.5)
+					towerPrompt:InputHoldEnd()
+					activated = true
+				end)
+				if root then root.Anchored = false end
+				return activated
+			end
+
+			local activated = holdTowerPrompt()
+			if not activated then
+				showNotification("Failed to activate tower prompt!")
+				AutoDoomTowerRunning = false
+				return
+			end
+
 			task.wait(5)
 
 			local trialBar
@@ -302,6 +381,7 @@ return function(ctx)
 			end)
 			if not trialBar then
 				showNotification("TowerTrialHUD not found!")
+				AutoDoomTowerRunning = false
 				return
 			end
 
@@ -309,10 +389,11 @@ return function(ctx)
 			local depositsLabel = trialBar:FindFirstChild("Deposits")
 			if not requirementLabel or not depositsLabel then
 				showNotification("Trial HUD elements not found!")
+				AutoDoomTowerRunning = false
 				return
 			end
 
-			local keywords = {"Rare", "Common", "Uncommon", "Secret", "Epic", "Legendary", "Mythical", "Cosmic"}
+			local keywords = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Secret"}
 			local foundKeyword
 			for _, kw in ipairs(keywords) do
 				if requirementLabel.Text:find(kw) then
@@ -322,16 +403,25 @@ return function(ctx)
 			end
 			if not foundKeyword then
 				showNotification("Could not identify Tower Trial keyword!")
+				AutoDoomTowerRunning = false
 				return
 			end
 
-			local brainrotFolder = workspace:FindFirstChild("ActiveBrainrots")
+			while AutoDoomTowerRunning do
 
-			while true do
-				if not brainrotFolder then showNotification("ActiveBrainrots not found!") return end
+				local brainrotFolder = workspace:FindFirstChild("ActiveBrainrots")
+				if not brainrotFolder then
+					showNotification("ActiveBrainrots not found!")
+					AutoDoomTowerRunning = false
+					return
+				end
 
 				local keywordFolder = brainrotFolder:FindFirstChild(foundKeyword)
-				if not keywordFolder then showNotification(foundKeyword .. " folder not found!") return end
+				if not keywordFolder then
+					showNotification(foundKeyword .. " folder not found!")
+					AutoDoomTowerRunning = false
+					return
+				end
 
 				local renderedList = {}
 				for _, child in ipairs(keywordFolder:GetChildren()) do
@@ -339,94 +429,54 @@ return function(ctx)
 						table.insert(renderedList, child)
 					end
 				end
-				if #renderedList == 0 then showNotification("No RenderedBrainrot found!") return end
+				if #renderedList == 0 then
+					showNotification("No RenderedBrainrot found for " .. foundKeyword .. "!")
+					task.wait(1)
+					continue
+				end
 
 				local target = renderedList[math.random(1, #renderedList)]
 				local pos = getPosition(target)
-				if pos then
-					local root = getCharacterRoots()
-					if root then root.CFrame = CFrame.new(pos.X, pos.Y, pos.Z) end
-					pcall(activateNearestInstant)
-					root = getCharacterRoots()
-					if root then root.CFrame = CFrame.new(root.Position.X, -25, root.Position.Z) end
-				end
+				if not pos then task.wait(0.5) continue end
 
 				acquireMoveLock()
 				pcall(function()
-					flyToPos(Vector3.new(4319.4, -25, 0.3), 2000)
+					local root = getCharacterRoots()
+					if not root then return end
+					towerFlyTo(Vector3.new(root.Position.X, BRAINROT_UNDER_Y, root.Position.Z), 4000)
 					task.wait(0.01)
-					flyToPos(Vector3.new(4319.4, 7.0, 0.3), 2000)
+					towerFlyTo(Vector3.new(pos.X, BRAINROT_UNDER_Y, pos.Z), 4000)
+					task.wait(0.01)
+					towerFlyTo(Vector3.new(pos.X, pos.Y, pos.Z), 4000)
+				end)
+
+				pcall(activateNearestInstant)
+
+				pcall(function()
+					local root = getCharacterRoots()
+					if not root then return end
+					towerFlyTo(Vector3.new(root.Position.X, BRAINROT_UNDER_Y, root.Position.Z), 4000)
+					task.wait(0.01)
+					towerFlyTo(Vector3.new(4318, BRAINROT_UNDER_Y, 0.3), 4000)
+					task.wait(0.01)
+					towerFlyTo(TOWER_POS, 4000)
 				end)
 				releaseMoveLock()
 
-				pcall(holdTowerPrompt, towerPrompt)
-				task.wait(5)
+				holdTowerPrompt()
 
 				local current, max = depositsLabel.Text:match("(%d+)/(%d+)")
 				current = tonumber(current) or 0
 				max = tonumber(max) or 10
 
 				if current >= max then
-					showNotification("Complete! Grabbing Brainrot...")
-
-					acquireMoveLock()
-					pcall(doomFlyTo, Vector3.new(4310, 7.0, 0))
-					releaseMoveLock()
-
-					task.wait(5)
-
-					local rewardFolders = {"Infinity", "Divine", "Celestial"}
-					for _, folderName in ipairs(rewardFolders) do
-						local rewardFolder = brainrotFolder:FindFirstChild(folderName)
-						if rewardFolder then
-							local rewardList = {}
-							for _, child in ipairs(rewardFolder:GetChildren()) do
-								if child.Name == "RenderedBrainrot" then
-									table.insert(rewardList, child)
-								end
-							end
-							if #rewardList > 0 then
-								local closestPos, closestDist = nil, math.huge
-								local r = getCharacterRoots()
-								if r then
-									for _, br in ipairs(rewardList) do
-										local brPos = getPosition(br)
-										if brPos then
-											local dist = (r.Position - brPos).Magnitude
-											if dist < closestDist then
-												closestDist = dist
-												closestPos = brPos
-											end
-										end
-									end
-								end
-								if closestPos then
-									local root = getCharacterRoots()
-									if root then root.CFrame = CFrame.new(closestPos.X, closestPos.Y, closestPos.Z) end
-									pcall(activateNearestInstant)
-									acquireMoveLock()
-									pcall(function()
-										local root2 = getCharacterRoots()
-										if root2 then
-											flyToPos(Vector3.new(root2.Position.X, -25, 0), 2000)
-											task.wait(0.01)
-											flyToPos(Vector3.new(125, -25, 0), 2000)
-											task.wait(0.01)
-											flyToPos(Vector3.new(125, 3.3, 0), 2000)
-										end
-									end)
-									releaseMoveLock()
-									break
-								end
-							end
-						end
-					end
-
-					showNotification("Everything was completed Successfully!")
+					showNotification("Complete!")
+					AutoDoomTowerRunning = false
 					return
 				end
-			end
-		end)
+
+				task.wait(0.1)
+			end 
+		end) 
 	end)
 end
-
