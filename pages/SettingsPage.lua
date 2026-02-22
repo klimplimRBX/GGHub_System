@@ -261,11 +261,10 @@ return function(ctx)
     local targetGui = playerGui:FindFirstChild("GGHub_v09")
     if targetGui and targetGui:IsA("ScreenGui") then
         pcall(function() targetGui:Destroy() end)
-        end
-	end
-		task.wait(0.1)
-		loadstring(game:HttpGet(url))()
-	end
+    end                         
+    task.wait(0.1)              
+    loadstring(game:HttpGet(url))()
+end
 
 	createButton(settingsPage, "Valentine Event Script", "Goes to the valentine event GGHub version", function()
 		loadOldScript("PLACEHOLDER_URL_1")
@@ -279,4 +278,3 @@ return function(ctx)
 		loadOldScript("PLACEHOLDER_URL_3")
 	end)
 end
-
