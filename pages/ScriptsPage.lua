@@ -338,14 +338,18 @@ return function(ctx)
 					end
 				end
 				if nearestPrompt then
+					switchToPC()
+					task.wait(0.1)
 					nearestPrompt.RequiresLineOfSight = false
 					nearestPrompt.HoldDuration = 0
 					nearestPrompt.MaxActivationDistance = 32
+					game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.E, false, game)
 					pcall(fireproximityprompt, nearestPrompt)
-					task.wait(0.05)
 					nearestPrompt:InputHoldBegin()
-					task.wait(0.1)
+					task.wait(0.3)
+					game:GetService("VirtualInputManager"):SendKeyEvent(false, Enum.KeyCode.E, false, game)
 					nearestPrompt:InputHoldEnd()
+					pcall(fireproximityprompt, nearestPrompt)
 				end
 			end
 
@@ -391,6 +395,8 @@ return function(ctx)
 				if root then root.Anchored = true end
 				local activated = false
 				pcall(function()
+					switchToPC()
+					task.wait(0.1)
 					towerPrompt.RequiresLineOfSight = false
 					towerPrompt.MaxActivationDistance = 32
 					pcall(fireproximityprompt, towerPrompt)
@@ -551,4 +557,3 @@ return function(ctx)
 		end) 
 	end)
 end
-
