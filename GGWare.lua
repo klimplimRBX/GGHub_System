@@ -615,7 +615,7 @@ local shaders = loadModule("core/Shaders.lua")({
 --         HOME PAGE CONTENT
 -- ===================================================
 
-loadModule("Pages/homepage.lua")({
+loadModule("pages/HomePage.lua")({
 	createButton = createButton,
 	createDropdown = createDropdown,
 	createToggle = createToggle,
@@ -629,7 +629,7 @@ loadModule("Pages/homepage.lua")({
 --         SCRIPTS PAGE CONTENT
 -- ===================================================
 
-loadModule("Pages/Scriptpage.lua")({
+loadModule("pages/ScriptsPage.lua")({
 	createButton = createButton,
 	createToggle = createToggle,
 	showNotification = showNotification,
@@ -642,7 +642,7 @@ loadModule("Pages/Scriptpage.lua")({
 --         MAP PAGE CONTENT
 -- ===================================================
 
-loadModule("Pages/MapPage.lua")({
+loadModule("pages/MapPage.lua")({
 	createButton = createButton,
 	showNotification = showNotification,
 	mapPage = mapPage,
@@ -654,7 +654,7 @@ loadModule("Pages/MapPage.lua")({
 --         SETTINGS PAGE CONTENT
 -- ===================================================
 
-loadModule("Pages/SettingsPage.lua")({
+loadModule("pages/SettingsPage.lua")({
 	TweenService = TweenService,
 	UserInputService = UserInputService,
 	Colors = Colors,
