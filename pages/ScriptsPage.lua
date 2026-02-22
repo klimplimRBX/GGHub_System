@@ -73,7 +73,7 @@ return function(ctx)
 	end
 
 	local function flyToPos(targetPos, speed)
-		speed = speed or 1000
+		speed = speed or 4000
 		local root, humanoid = getCharacterRoots()
 		if not isCharacterAlive(root, humanoid) then return false end
 
@@ -571,7 +571,7 @@ return function(ctx)
 
 				local current, max = depositsLabel.Text:match("(%d+)/(%d+)")
 				current = tonumber(current) or 0
-				max     = tonumber(max) or 10
+				max = tonumber(max) or 10
 
 				if current >= max then
 					showNotification("Complete!")
