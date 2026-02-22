@@ -335,3 +335,12 @@ return function(services)
 		_savedCustomV = _savedCustomV,
 	}
 end
+
+local _savedKeybindPath = "GGHub/KeybindPreference.json"
+local _savedKey = Enum.KeyCode.RightControl
+if isfile(_savedKeybindPath) then
+    local ok, data = pcall(HttpService.JSONDecode, HttpService, readfile(_savedKeybindPath))
+    if ok and data and Enum.KeyCode[data.key] then
+        _savedKey = Enum.KeyCode[data.key]
+    end
+end
