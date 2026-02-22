@@ -480,12 +480,15 @@ return function(ctx)
 				end)
 				releaseMoveLock()
 
+				task.wait(0.5)
 				local root = getCharacterRoots()
-				if root and (root.Position - TOWER_POS).Magnitude <= 5 then
-					pcall(activateNearestInstant)
-				else
-					showNotification("Failed to reach tower for deposit!")
+				if root then
+					root.CFrame = CFrame.new(TOWER_POS)
+					root.AssemblyLinearVelocity = Vector3.zero
+					root.AssemblyAngularVelocity = Vector3.zero
 				end
+				task.wait(0.3)
+				pcall(activateNearestInstant)
 
 				task.wait(4)
 
@@ -515,4 +518,3 @@ return function(ctx)
 		end) 
 	end)
 end
-
