@@ -5,10 +5,7 @@ return function(ctx)
 	local scriptPage = ctx.scriptPage
 	local LocalPlayer = ctx.LocalPlayer
 	local RunService = ctx.RunService
-
--- ===================================================
---       ⚡ SCRIPTS PAGE CONTENT - DOOM EVENT
--- ===================================================
+	local Workspace = game:GetService("Workspace")
 
 	local AutoFarmDoomCoinEnabled = false
 	local AutoPressDoomButtonEnabled = false
@@ -39,59 +36,126 @@ return function(ctx)
 		return nil
 	end
 
+	local function isCharacterAlive(root, humanoid)
+		if not root or not root.Parent then return false end
+		if not humanoid or not humanoid.Parent then return false end
+		if humanoid.Health <= 0 then return false end
+		return true
+	end
+
 	local function getCharacterRoots()
-		local char = LocalPlayer.Character
-		if not char then return nil end
-		return char:FindFirstChild("HumanoidRootPart")
+		local character = LocalPlayer.Character
+		if not character then return nil, nil end
+		local root = character:FindFirstChild("HumanoidRootPart")
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		return root, humanoid
+	end
+
+	local function waitForCharacterSafe()
+		local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+		local root = character:WaitForChild("HumanoidRootPart", 10)
+		local humanoid = character:WaitForChild("Humanoid", 10)
+		if not root or not humanoid then return nil, nil end
+		local elapsed = 0
+		while humanoid.Health <= 0 do
+			local dt = RunService.Heartbeat:Wait()
+			elapsed = elapsed + dt
+			if elapsed > 10 then return nil, nil end
+			if LocalPlayer.Character ~= character then return nil, nil end
+		end
+		task.wait(0.2)
+		return root, humanoid
 	end
 
 	local function flyToPos(targetPos, speed)
-		local root = getCharacterRoots()
-		if not root then return end
-		while (root.Position - targetPos).Magnitude > 2 do
-			local direction = (targetPos - root.Position).Unit
+		speed = speed or 4000
+		local root, humanoid = getCharacterRoots()
+		if not isCharacterAlive(root, humanoid) then return false end
+
+		while (root.Position - targetPos).Magnitude > 1.5 do
+			if not AutoPressDoomButtonEnabled and not AutoFarmDoomCoinEnabled then return false end
 			local dt = RunService.Heartbeat:Wait()
-			root.CFrame = root.CFrame + (direction * speed * dt)
-			root.Velocity = Vector3.new(0, 0, 0)
+			if not isCharacterAlive(root, humanoid) then return false end
+			local remaining = (targetPos - root.Position)
+			local step = math.min(speed * dt, remaining.Magnitude)
+			root.CFrame = root.CFrame + remaining.Unit * step
+			root.AssemblyLinearVelocity = Vector3.zero
 		end
+
+		if isCharacterAlive(root, humanoid) then
+			root.CFrame = CFrame.new(targetPos)
+			root.AssemblyLinearVelocity = Vector3.zero
+			root.AssemblyAngularVelocity = Vector3.zero
+		end
+		return true
 	end
 
-	local doomCoinBusy = false
+	local function collectItem(targetPos, heightOffset)
+		local root = waitForCharacterSafe()
+		if not root then return end
 
-	RunService.Heartbeat:Connect(function()
-		if not AutoFarmDoomCoinEnabled then return end
-		if doomCoinBusy then return end
+		acquireMoveLock()
+		local ok, err = pcall(function()
+			local cx, cz = root.Position.X, root.Position.Z
+			flyToPos(Vector3.new(cx, -25, cz), 1000)
+			task.wait(0.01)
+			flyToPos(Vector3.new(targetPos.X, -25, targetPos.Z), 1000)
+			task.wait(0.01)
+			flyToPos(Vector3.new(targetPos.X, heightOffset, targetPos.Z), 1000)
+			task.wait(0.01)
+		end)
+		releaseMoveLock()
 
-		local folder = workspace:FindFirstChild("DoomCoins") or workspace:FindFirstChild("Coins")
-		if not folder then return end
+		if not ok then warn("[collectItem] Movement error: " .. tostring(err)) end
+	end
 
-		for _, coin in ipairs(folder:GetChildren()) do
-			if coin and coin.Parent then
-				local pos = getPosition(coin)
-				if pos and coin ~= lastCollectedDoomCoin then
-					doomCoinBusy = true
-					acquireMoveLock()
-					pcall(function()
-						local root = getCharacterRoots()
-						if root then
-							flyToPos(Vector3.new(pos.X, -25, pos.Z), 2000)
-							task.wait(0.01)
-							flyToPos(Vector3.new(pos.X, pos.Y, pos.Z), 2000)
-							task.wait(0.3)
-							lastCollectedDoomCoin = coin
+	task.spawn(function()
+		while true do
+			if AutoFarmDoomCoinEnabled then
+				local root = getCharacterRoots()
+				if root then
+					local doomEventParts = Workspace:FindFirstChild("DoomEventParts")
+					if doomEventParts then
+						local coins = {}
+						for _, coin in ipairs(doomEventParts:GetChildren()) do
+							if coin.Name == "DoomCoin" and coin.Parent then
+								local pos = getPosition(coin)
+								if pos then
+									table.insert(coins, {
+										obj = coin,
+										pos = pos,
+										dist = (root.Position - pos).Magnitude
+									})
+								end
+							end
 						end
-					end)
-					releaseMoveLock()
-					doomCoinBusy = false
-					task.wait(0.5)
-					break
+
+						if #coins > 0 then
+							table.sort(coins, function(a, b) return a.dist < b.dist end)
+							local target = nil
+							if lastCollectedDoomCoin and coins[1] and coins[1].obj == lastCollectedDoomCoin and coins[2] then
+								target = coins[2]
+							elseif coins[1] then
+								target = coins[1]
+							end
+							if target and target.obj.Parent then
+								collectItem(target.pos, 3.3)
+								lastCollectedDoomCoin = target.obj
+							end
+						else
+							lastCollectedDoomCoin = nil
+							task.wait(1)
+						end
+					end
 				end
 			end
+			task.wait(0.02)
 		end
 	end)
 
-	createToggle(scriptPage, "Auto Farm Doom Coins", "Automatically collects Doom event coins for you", function(state)
+	createToggle(scriptPage, "Auto Farm Doom Coins", "Auto Farms Doom Coins for ya", function(state)
 		AutoFarmDoomCoinEnabled = state
+		lastCollectedDoomCoin = nil
 		if state then
 			showNotification("Auto Farm Doom Coins Enabled")
 		else
@@ -101,43 +165,58 @@ return function(ctx)
 
 	local doomButtonsBusy = false
 
-	RunService.Heartbeat:Connect(function()
-		if not AutoPressDoomButtonEnabled then return end
-		if doomButtonsBusy then return end
-
-		local folder = workspace:FindFirstChild("DoomButtons") or workspace:FindFirstChild("Buttons")
-		if not folder then return end
-
-		for _, button in ipairs(folder:GetDescendants()) do
-			if button and button.Parent then
-				local union = button:IsA("UnionOperation") and button or nil
-				if not union then
-					union = button:FindFirstChildWhichIsA("UnionOperation", true)
+	task.spawn(function()
+		RunService.Heartbeat:Connect(function()
+			if AutoPressDoomButtonEnabled and not doomButtonsBusy then
+				local root = getCharacterRoots()
+				if root then
+					local pos = root.Position
+					if pos.Y ~= -25 then
+						root.CFrame = CFrame.new(pos.X, -25, pos.Z)
+						root.AssemblyLinearVelocity = Vector3.zero
+						root.AssemblyAngularVelocity = Vector3.zero
+					end
 				end
-				if union then
-					local prompt = union:FindFirstChild("ProximityPrompt")
-					if prompt then
-						local pos = getPosition(button)
-						if pos then
-							doomButtonsBusy = true
-							acquireMoveLock()
-							pcall(function()
-								local root = getCharacterRoots()
-								if root then
-									flyToPos(Vector3.new(pos.X, -25, pos.Z), 2000)
-									task.wait(0.01)
-									flyToPos(Vector3.new(pos.X, pos.Y + 3, pos.Z), 2000)
-									task.wait(0.5)
+			end
+		end)
+	end)
+
+	task.spawn(function()
+		while true do
+			task.wait(0.3)
+			if AutoPressDoomButtonEnabled then
+				local doomButtons = Workspace:FindFirstChild("DoomEventButtons")
+				if doomButtons then
+					for _, button in ipairs(doomButtons:GetChildren()) do
+						if button.Name == "Button" and button.Parent then
+							local union = button:FindFirstChild("Union")
+							if union then
+								local prompt = union:FindFirstChild("ProximityPrompt")
+								if prompt then
+									local pos = getPosition(button)
+									if pos then
+										doomButtonsBusy = true
+										acquireMoveLock()
+										pcall(function()
+											local root = getCharacterRoots()
+											if root then
+												flyToPos(Vector3.new(pos.X, -25, pos.Z), 2000)
+												task.wait(0.01)
+												flyToPos(Vector3.new(pos.X, pos.Y + 3, pos.Z), 2000)
+												task.wait(0.5)
+											end
+											for _ = 1, 3 do
+												local ok = pcall(fireproximityprompt, prompt)
+												if ok then break end
+												task.wait(0.3)
+											end
+										end)
+										releaseMoveLock()
+										doomButtonsBusy = false
+										task.wait(1)
+									end
 								end
-								for _ = 1, 3 do
-									local ok = pcall(fireproximityprompt, prompt)
-									if ok then break end
-									task.wait(0.3)
-								end
-							end)
-							releaseMoveLock()
-							doomButtonsBusy = false
-							task.wait(1)
+							end
 						end
 					end
 				end
@@ -145,7 +224,7 @@ return function(ctx)
 		end
 	end)
 
-	createToggle(scriptPage, "Auto press Doom buttons", "Auto presses Doom Buttons for you", function(state)
+	createToggle(scriptPage, "Auto press Doom buttons", "Auto presses Doom event buttons for you", function(state)
 		AutoPressDoomButtonEnabled = state
 		if state then
 			showNotification("Auto press Doom buttons Enabled")
