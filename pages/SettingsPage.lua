@@ -249,20 +249,20 @@ return function(ctx)
 	end)
 
 	local function loadOldScript(url)
-		if getgenv().__GGHub_Cleanup then
-			for _, fn in ipairs(getgenv().__GGHub_Cleanup) do
-				pcall(fn)
-			end
-		end
-		getgenv().__GGHub_Running = false
-		getgenv().__GGHub_Notify = nil
-		getgenv().__GGHub_Cleanup = nil
-		local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
-		for _, g in ipairs(playerGui:GetChildren()) do
-			if g:IsA("ScreenGui") then
-				pcall(function() g:Destroy() end)
-			end
-		end
+    if getgenv().__GGHub_Cleanup then
+        for _, fn in ipairs(getgenv().__GGHub_Cleanup) do
+            pcall(fn)
+        end
+    end
+    getgenv().__GGHub_Running = false
+    getgenv().__GGHub_Notify = nil
+    getgenv().__GGHub_Cleanup = nil
+    local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+    local targetGui = playerGui:FindFirstChild("GGHub_v09")
+    if targetGui and targetGui:IsA("ScreenGui") then
+        pcall(function() targetGui:Destroy() end)
+        end
+	end
 		task.wait(0.1)
 		loadstring(game:HttpGet(url))()
 	end
@@ -279,3 +279,4 @@ return function(ctx)
 		loadOldScript("PLACEHOLDER_URL_3")
 	end)
 end
+
