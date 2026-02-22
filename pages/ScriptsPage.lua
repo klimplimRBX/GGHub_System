@@ -241,14 +241,17 @@ return function(ctx)
 	local AutoDoomTowerRunning = false
 	table.insert(getgenv().__GGHub_Cleanup, function()
 		AutoDoomTowerRunning = false
+		workspace.Gravity = 196.2
 	end)
 
 	createToggle(scriptPage, "Auto Doom Tower", "Completes the Doom Tower Automatically for you", function(state)
 		AutoDoomTowerRunning = state
 		if not state then
 			showNotification("Auto Doom Tower stopped.")
+			workspace.Gravity = 196.2
 			return
 		end
+		workspace.Gravity = 5
 		task.spawn(function()
 
 			local TOWER_POS = Vector3.new(4325, 6.3, -2.5)
@@ -256,7 +259,6 @@ return function(ctx)
 			local BRAINROT_UNDER_Y = -20
 			local BRAINROT_FLAT_Y = -0.5
 
-			-- Ativar noclip
 			local noclipConn
 			noclipConn = RunService.Stepped:Connect(function()
 				if not AutoDoomTowerRunning then
@@ -563,6 +565,7 @@ return function(ctx)
 
 				if current >= max then
 					showNotification("Complete!")
+					workspace.Gravity = 196.2
 					AutoDoomTowerRunning = false
 					return
 				end
