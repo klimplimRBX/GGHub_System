@@ -50,6 +50,8 @@ end
 --            COLORS & THEMES
 -- ===================================================
 
+loading.setProgress(0.08, "Loading themes...")
+
 local themes = loadModule("core/Theme.lua")({
 	TweenService = TweenService,
 	HttpService = HttpService,
@@ -73,6 +75,8 @@ local currentThemeName = themes.currentThemeName
 local _savedCustomH = themes._savedCustomH
 local _savedCustomS = themes._savedCustomS
 local _savedCustomV = themes._savedCustomV
+
+loading.setProgress(0.18, "Building UI...")
 
 -- ===================================================
 
@@ -268,11 +272,15 @@ MainFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateGlow)
 local glowState = {enabled = false, intensity = 1}
 local _savedGlowPath = "GGHub/GlowPreference.json"
 if isfile(_savedGlowPath) then
-    local ok, data = pcall(HttpService.JSONDecode, HttpService, readfile(_savedGlowPath))
-    if ok and data then
-        if type(data.enabled) == "boolean" then glowState.enabled = data.enabled end
-        if type(data.intensity) == "number" then glowState.intensity = math.clamp(data.intensity, 0, 1) end
-    end
+	local ok, data = pcall(HttpService.JSONDecode, HttpService, readfile(_savedGlowPath))
+	if ok and data then
+		if type(data.enabled) == "boolean" then glowState.enabled = data.enabled end
+		if type(data.intensity) == "number" then glowState.intensity = math.clamp(data.intensity, 0, 1) end
+	end
+end
+
+if glowState.enabled then
+	_toggleStates["Glow Effect"] = true
 end
 
 local function applyGlowIntensity(intensity, duration)
@@ -571,13 +579,30 @@ end)
 --          NOTIFICATION SYSTEM
 -- ===================================================
 
-local notifModule = loadModule("core/Notifications.lua")({
-	TweenService = TweenService,
-	RunService = RunService,
-	Colors = Colors,
-	reg = reg,
-	gui = gui,
-})
+loading.setProgress(0.35, "Loading modules...")
+
+local notifModule, shaders
+local modulesLoaded = 0
+
+task.spawn(function()
+	notifModule = loadModule("core/Notifications.lua")({
+		TweenService = TweenService,
+		RunService = RunService,
+		Colors = Colors,
+		reg = reg,
+		gui = gui,
+	})
+	modulesLoaded += 1
+end)
+
+task.spawn(function()
+	shaders = loadModule("core/Shaders.lua")({
+		Lighting = Lighting,
+	})
+	modulesLoaded += 1
+end)
+
+repeat task.wait(0.05) until modulesLoaded >= 2
 
 local showNotification = notifModule.show
 getgenv().__GGHub_Notify = showNotification
@@ -585,6 +610,8 @@ getgenv().__GGHub_Notify = showNotification
 -- ===================================================
 --       UI COMPONENT CREATORS
 -- ===================================================
+
+loading.setProgress(0.55, "Loading components...")
 
 local ctx = {
 	TweenService = TweenService,
@@ -615,92 +642,102 @@ local openColorPicker = components.openColorPicker
 --         SHADERS
 -- ===================================================
 
-local shaders = loadModule("core/Shaders.lua")({
-	Lighting = Lighting,
-})
+loading.setProgress(0.68, "Loading pages...")
 
--- ===================================================
---         HOME PAGE CONTENT
--- ===================================================
+local pagesLoaded = 0
 
-loadModule("pages/HomePage.lua")({
-	createButton = createButton,
-	createDropdown = createDropdown,
-	createToggle = createToggle,
-	showNotification = showNotification,
-	homePage = homePage,
-	LocalPlayer = LocalPlayer,
-	shaders = shaders,
-})
+task.spawn(function()
+	loadModule("pages/HomePage.lua")({
+		createButton = createButton,
+		createDropdown = createDropdown,
+		createToggle = createToggle,
+		showNotification = showNotification,
+		homePage = homePage,
+		LocalPlayer = LocalPlayer,
+		shaders = shaders,
+	})
+	pagesLoaded += 1
+end)
 
 -- ===================================================
 --         SCRIPTS PAGE CONTENT
 -- ===================================================
 
-loadModule("pages/ScriptsPage.lua")({
-	createButton = createButton,
-	createToggle = createToggle,
-	showNotification = showNotification,
-	scriptPage = scriptPage,
-	LocalPlayer = LocalPlayer,
-	RunService = RunService,
-})
+task.spawn(function()
+	loadModule("pages/ScriptsPage.lua")({
+		createButton = createButton,
+		createToggle = createToggle,
+		showNotification = showNotification,
+		scriptPage = scriptPage,
+		LocalPlayer = LocalPlayer,
+		RunService = RunService,
+	})
+	pagesLoaded += 1
+end)
 
 -- ===================================================
 --         MAP PAGE CONTENT
 -- ===================================================
 
-loadModule("pages/MapPage.lua")({
-	createButton = createButton,
-	showNotification = showNotification,
-	mapPage = mapPage,
-	LocalPlayer = LocalPlayer,
-	RunService = RunService,
-})
+task.spawn(function()
+	loadModule("pages/MapPage.lua")({
+		createButton = createButton,
+		showNotification = showNotification,
+		mapPage = mapPage,
+		LocalPlayer = LocalPlayer,
+		RunService = RunService,
+	})
+	pagesLoaded += 1
+end)
 
 -- ===================================================
 --         SETTINGS PAGE CONTENT
 -- ===================================================
 
-loadModule("pages/SettingsPage.lua")({
-	TweenService = TweenService,
-	UserInputService = UserInputService,
-	Colors = Colors,
-	reg = reg,
-	_reg = _reg,
-	_regCounters = _regCounters,
-	createButton = createButton,
-	createToggle = createToggle,
-	createSlider = createSlider,
-	createDropdown = createDropdown,
-	showNotification = showNotification,
-	applyTheme = applyTheme,
-	openColorPicker = openColorPicker,
-	ThemeDisplayNames = ThemeDisplayNames,
-	theme = {
-		name = currentThemeName,
-		customH = _savedCustomH,
-		customS = _savedCustomS,
-		customV = _savedCustomV,
-	},
-	setMiniGGSize = setMiniGGSize,
-	currentMiniSize = _currentMiniSize,
-	MainFrame = MainFrame,
-	showGlow = showGlow,
-	hideGlow = hideGlow,
-	tweenGlow = tweenGlow,
-	applyGlowIntensity = applyGlowIntensity,
-	saveToggleStates = saveToggleStates,
-	_toggleStates = _toggleStates,
-	_savedTogglesPath = _savedTogglesPath,
-	settingsPage = settingsPage,
-	RunService = RunService,
-	state = ctx.state,
-	kb = ctx.kb,
-	glow = glowState,
-	openUI = function() if openUI  then openUI()  end end,
-	closeUI = function() if closeUI then closeUI() end end,
-})
+task.spawn(function()
+	loadModule("pages/SettingsPage.lua")({
+		TweenService = TweenService,
+		UserInputService = UserInputService,
+		Colors = Colors,
+		reg = reg,
+		_reg = _reg,
+		_regCounters = _regCounters,
+		createButton = createButton,
+		createToggle = createToggle,
+		createSlider = createSlider,
+		createDropdown = createDropdown,
+		showNotification = showNotification,
+		applyTheme = applyTheme,
+		openColorPicker = openColorPicker,
+		ThemeDisplayNames = ThemeDisplayNames,
+		theme = {
+			name = currentThemeName,
+			customH = _savedCustomH,
+			customS = _savedCustomS,
+			customV = _savedCustomV,
+		},
+		setMiniGGSize = setMiniGGSize,
+		currentMiniSize = _currentMiniSize,
+		MainFrame = MainFrame,
+		showGlow = showGlow,
+		hideGlow = hideGlow,
+		tweenGlow = tweenGlow,
+		applyGlowIntensity = applyGlowIntensity,
+		saveToggleStates = saveToggleStates,
+		_toggleStates = _toggleStates,
+		_savedTogglesPath = _savedTogglesPath,
+		settingsPage = settingsPage,
+		RunService = RunService,
+		state = ctx.state,
+		kb = ctx.kb,
+		glow = glowState,
+		openUI = function() if openUI  then openUI()  end end,
+		closeUI = function() if closeUI then closeUI() end end,
+	})
+	pagesLoaded += 1
+end)
+
+repeat task.wait(0.05) until pagesLoaded >= 4
 
 -- ===================================================
 --                 SEARCH SYSTEM
@@ -946,44 +983,30 @@ MiniGG.MouseButton1Click:Connect(function()
 	openUI()
 end)
 
--- =================================================================================================================
--- LOADING BAR FUNC - If you have seen this, know that GGHub loads in like 0.5s, but Just to make It more cooler and Professional i extended It a lil
--- =================================================================================================================
+-- =========================
+-- LOADING BAR FUNC
+-- =========================
 
-local _savedGlowPath = "GGHub/GlowPreference.json"
-if isfile(_savedGlowPath) then
-    local ok, data = pcall(HttpService.JSONDecode, HttpService, readfile(_savedGlowPath))
-    if ok and data then
-        if type(data.enabled) == "boolean" then glowState.enabled = data.enabled end
-        if type(data.intensity) == "number" then glowState.intensity = math.clamp(data.intensity, 0, 1) end
-    end
-end
+loading.setProgress(1, "Done!")
+task.wait(0.3)
 
+loading.hide()
+
+task.wait(0.308)
+MainFrame.Visible = true
+mStroke.Transparency = 1
+UIScale_Main.Scale = _uiScale * 0.88
 if glowState.enabled then
-    _toggleStates["Glow Effect"] = true
+	showGlow()
+	for _, l in ipairs(glowLayers) do l.frame.BackgroundTransparency = 1 end
 end
+TweenService:Create(MainFrame, TweenInfo.new(0.231, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+	GroupTransparency = 0
+}):Play()
+TweenService:Create(UIScale_Main, TweenInfo.new(0.231, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+	Scale = _uiScale
+}):Play()
+TweenService:Create(mStroke, TweenInfo.new(0.231), {Transparency = 0}):Play()
+if glowState.enabled then tweenGlow(1.0, 0.4) end
 
-task.spawn(function()
-	task.wait(2.4)
-
-	loading.hide()
-
-	task.wait(0.308)
-	MainFrame.Visible = true
-	mStroke.Transparency = 1
-	UIScale_Main.Scale = _uiScale * 0.88
-	if glowState.enabled then
-		showGlow()
-		for _, l in ipairs(glowLayers) do l.frame.BackgroundTransparency = 1 end
-	end
-	TweenService:Create(MainFrame, TweenInfo.new(0.231, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-		GroupTransparency = 0
-	}):Play()
-	TweenService:Create(UIScale_Main, TweenInfo.new(0.231, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-		Scale = _uiScale
-	}):Play()
-	TweenService:Create(mStroke, TweenInfo.new(0.231), {Transparency = 0}):Play()
-	if glowState.enabled then tweenGlow(1.0, 0.4) end
-
-	print("GGHub Fully Loaded")
-end)
+print("GGHub Fully Loaded")
