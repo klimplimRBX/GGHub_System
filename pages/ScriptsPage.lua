@@ -10,6 +10,11 @@ return function(ctx)
 	local AutoFarmDoomCoinEnabled = false
 	local AutoPressDoomButtonEnabled = false
 	local lastCollectedDoomCoin = nil
+	table.insert(getgenv().__GGHub_Cleanup, function()
+    AutoFarmDoomCoinEnabled = false
+    AutoPressDoomButtonEnabled = false
+    lastCollectedDoomCoin = nil
+    end)
 
 	local moveLocked = false
 	local function acquireMoveLock()
@@ -424,3 +429,4 @@ return function(ctx)
 		end)
 	end)
 end
+
