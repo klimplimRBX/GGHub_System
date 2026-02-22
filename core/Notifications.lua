@@ -6,10 +6,10 @@ return function(ctx)
 	local gui = ctx.gui
 
 	local notificationList = {}
-	local NOTIF_W   = 280
+	local NOTIF_W = 280
 	local NOTIF_GAP = 10
 	local NOTIF_DUR = 4
-	local NOTIF_X   = -(NOTIF_W + 16)
+	local NOTIF_X = -(NOTIF_W + 16)
 
 	local function repositionNotifs()
 		local offsetY = 20
@@ -37,7 +37,7 @@ return function(ctx)
 		notif.Size = UDim2.new(0, NOTIF_W, 0, notifH)
 		notif.AnchorPoint = Vector2.new(0, 1)
 		notif.BackgroundColor3 = Colors.ItemBG
-		notif.BorderSizePixel  = 0
+		notif.BorderSizePixel = 0
 		notif.ZIndex = 50
 		notif.Position = UDim2.new(1, 30, 1, -20)
 		notif.Parent = gui
@@ -155,3 +155,4 @@ return function(ctx)
 
 	return { show = showNotification }
 end
+
