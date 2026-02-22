@@ -64,19 +64,6 @@ return function(ctx)
 
 	local glowEnabled = ctx.glow.enabled
 	local glowIntensity = ctx.glow.intensity
-
-	local _savedGlowPath = "GGHub/GlowPreference.json"
-	do
-		if isfile(_savedGlowPath) then
-			local ok, data = pcall(game:GetService("HttpService").JSONDecode,
-				game:GetService("HttpService"), readfile(_savedGlowPath))
-			if ok and data then
-				if type(data.enabled) == "boolean" then glowEnabled = data.enabled end
-				if type(data.intensity) == "number" then glowIntensity = math.clamp(data.intensity, 0, 1) end
-			end
-		end
-	end
-
 	local function saveGlowPrefs()
 		pcall(function()
 			if not isfolder("GGHub") then makefolder("GGHub") end
@@ -291,3 +278,4 @@ return function(ctx)
 		showNotification("Settings cleared!")
 	end)
 end
+
