@@ -353,6 +353,15 @@ return function(ctx)
 
 			local function holdTowerPrompt()
 				local root = getCharacterRoots()
+				if not root then return false end
+				local promptPart = towerPrompt.Parent
+				if promptPart and promptPart:IsA("BasePart") then
+					local dist = (root.Position - promptPart.Position).Magnitude
+					if dist > towerPrompt.MaxActivationDistance then
+						towerFlyTo(promptPart.Position + Vector3.new(0, 2, 0), 800)
+					end
+				end
+				root = getCharacterRoots()
 				if root then root.Anchored = true end
 				local activated = false
 				pcall(function()
@@ -376,7 +385,7 @@ return function(ctx)
 
 			local trialBar
 			pcall(function()
-				trialBar = LocalPlayer.PlayerGui:WaitForChild("TowerTrialHUD", 10):WaitForChild("TrialBar", 10)
+				trialBar = LocalPlayer.PlayerGui:WaitForChild("TowerTrialHUD", 15):WaitForChild("TrialBar", 15)
 			end)
 			if not trialBar then
 				showNotification("TowerTrialHUD not found!")
@@ -393,11 +402,19 @@ return function(ctx)
 			end
 
 			local keywords = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Secret"}
+
 			local foundKeyword
-			for _, kw in ipairs(keywords) do
-				if requirementLabel.Text:find(kw) then
-					foundKeyword = kw
-					break
+			local elapsed = 0
+			while not foundKeyword and elapsed < 15 do
+				for _, kw in ipairs(keywords) do
+					if requirementLabel.Text:find(kw) then
+						foundKeyword = kw
+						break
+					end
+				end
+				if not foundKeyword then
+					task.wait(0.5)
+					elapsed = elapsed + 0.5
 				end
 			end
 			if not foundKeyword then
@@ -468,7 +485,7 @@ return function(ctx)
 
 				local current, max = depositsLabel.Text:match("(%d+)/(%d+)")
 				current = tonumber(current) or 0
-				max = tonumber(max) or 10
+				max     = tonumber(max) or 10
 
 				if current >= max then
 					showNotification("Complete!")
@@ -492,3 +509,4 @@ return function(ctx)
 		end) 
 	end)
 end
+
