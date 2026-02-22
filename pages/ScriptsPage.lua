@@ -73,7 +73,7 @@ return function(ctx)
 	end
 
 	local function flyToPos(targetPos, speed)
-		speed = speed or 4000
+		speed = speed or 1000
 		local root, humanoid = getCharacterRoots()
 		if not isCharacterAlive(root, humanoid) then return false end
 
@@ -280,11 +280,21 @@ return function(ctx)
 			local function towerFlyTo(targetPos, speed)
 				speed = speed or 1200
 				local root, humanoid = getCharacterRoots()
-				if not isCharacterAlive(root, humanoid) then return false end
+				if not isCharacterAlive(root, humanoid) then
+					LocalPlayer.CharacterAdded:Wait()
+					task.wait(1.5)
+					root, humanoid = getCharacterRoots()
+					if not isCharacterAlive(root, humanoid) then return false end
+				end
 				while (root.Position - targetPos).Magnitude > 1.5 do
 					if not AutoDoomTowerRunning then return false end
+					if not isCharacterAlive(root, humanoid) then
+						LocalPlayer.CharacterAdded:Wait()
+						task.wait(1.5)
+						root, humanoid = getCharacterRoots()
+						if not isCharacterAlive(root, humanoid) then return false end
+					end
 					local dt = RunService.Heartbeat:Wait()
-					if not isCharacterAlive(root, humanoid) then return false end
 					local remaining = (targetPos - root.Position)
 					local step = math.min(speed * dt, remaining.Magnitude)
 					root.CFrame = root.CFrame + remaining.Unit * step
@@ -561,7 +571,7 @@ return function(ctx)
 
 				local current, max = depositsLabel.Text:match("(%d+)/(%d+)")
 				current = tonumber(current) or 0
-				max = tonumber(max) or 10
+				max     = tonumber(max) or 10
 
 				if current >= max then
 					showNotification("Complete!")
