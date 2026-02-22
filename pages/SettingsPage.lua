@@ -63,7 +63,8 @@ return function(ctx)
 	)
 
 	local glowEnabled = ctx.glow.enabled
-	local glowIntensity = ctx.glow.intensity
+local glowIntensity = ctx.glow.intensity
+	
 	local function saveGlowPrefs()
 		pcall(function()
 			if not isfolder("GGHub") then makefolder("GGHub") end
@@ -278,4 +279,5 @@ return function(ctx)
 		showNotification("Settings cleared!")
 	end)
 end
+
 
