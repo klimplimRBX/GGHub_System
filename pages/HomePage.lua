@@ -5,7 +5,7 @@ return function(ctx)
 	local showNotification = ctx.showNotification
 	local homePage = ctx.homePage
 	local LocalPlayer = ctx.LocalPlayer
-	local shadersl = ctx.shaders
+	local shaders = ctx.shaders
 
 	-- ===================================================
 	--         🏠 HOME PAGE CONTENT
@@ -138,3 +138,4 @@ return function(ctx)
 		end
 	end)
 end
+
