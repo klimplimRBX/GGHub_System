@@ -243,13 +243,12 @@ return function(ctx)
 		AutoDoomTowerRunning = false
 	end)
 
-	createButton(scriptPage, "Auto Doom Tower", "Completes the Doom Tower Automatically for you", function()
-		if AutoDoomTowerRunning then
-			AutoDoomTowerRunning = false
+	createToggle(scriptPage, "Auto Doom Tower", "Completes the Doom Tower Automatically for you", function(state)
+		AutoDoomTowerRunning = state
+		if not state then
 			showNotification("Auto Doom Tower stopped.")
 			return
 		end
-		AutoDoomTowerRunning = true
 		task.spawn(function()
 
 			local TOWER_POS = Vector3.new(4325, 6.3, -2.5)
@@ -373,7 +372,7 @@ return function(ctx)
 				return
 			end
 
-			task.wait(5)
+			task.wait(6)
 
 			local trialBar
 			pcall(function()
@@ -450,7 +449,7 @@ return function(ctx)
 					towerFlyTo(Vector3.new(pos.X, pos.Y, pos.Z), 1200)
 				end)
 
-				task.wait(0.8)
+				task.wait(0.5)
 				pcall(activateNearestInstant)
 
 				pcall(function()
@@ -464,20 +463,12 @@ return function(ctx)
 				end)
 				releaseMoveLock()
 
-				local root = getCharacterRoots()
-				if root then root.Anchored = true end
-				pcall(function()
-					towerPrompt:InputHoldBegin()
-					task.wait(0.1)
-					towerPrompt:InputHoldEnd()
-				end)
-				if root then root.Anchored = false end
-
-				task.wait(1)
+				holdTowerPrompt()
+				task.wait(6)
 
 				local current, max = depositsLabel.Text:match("(%d+)/(%d+)")
 				current = tonumber(current) or 0
-				max     = tonumber(max) or 10
+				max = tonumber(max) or 10
 
 				if current >= max then
 					showNotification("Complete!")
