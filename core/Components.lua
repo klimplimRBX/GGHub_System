@@ -274,7 +274,7 @@ return function(ctx)
 			pcall(callback, currentVal, pct)
 		end
 
-		DragBtn.MouseButton1Down:Connect(function(x, y) dragging = true end)
+		DragBtn.MouseButton1Down:Connect(function() dragging = true end)
 		UserInputService.InputEnded:Connect(function(input)
 			if input.UserInputType == Enum.UserInputType.MouseButton1 or
 			   input.UserInputType == Enum.UserInputType.Touch then
@@ -523,9 +523,9 @@ return function(ctx)
 					pcall(callback, optName)
 					closePopup()
 				end)
-      end
+			end
 
-      local fadeIn = TweenInfo.new(0.18, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+			local fadeIn = TweenInfo.new(0.18, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 			local textIn = TweenInfo.new(0.14)
 			TweenService:Create(PopScale, fadeIn, {Scale = 1}):Play()
 			TweenService:Create(Popup, TweenInfo.new(0.14), {BackgroundTransparency = 0}):Play()
@@ -554,11 +554,11 @@ return function(ctx)
 	local _colorPickerOpen = false
 	local _colorPickerFrame = nil
 
-	local function openColorPicker(initH, initS, initV, applyCustomTheme, showNotification, openUI, closeUI)
+	local function openColorPicker(initH, initS, initV)
 		if _colorPickerOpen and _colorPickerFrame and _colorPickerFrame.Parent then return end
 		_colorPickerOpen = true
 
-		if ctx.uiOpen and closeUI then closeUI() end
+		if ctx.closeUI then ctx.closeUI() end
 
 		initH = initH or 0.6
 		initS = initS or 0.8
@@ -973,16 +973,16 @@ return function(ctx)
 			connections = {}
 			_colorPickerOpen = false
 			_colorPickerFrame = nil
-			if doApply then applyCustomTheme(pH, pS, pV) end
+			if doApply and ctx.applyCustomTheme then ctx.applyCustomTheme(pH, pS, pV) end
 			local sc = cpWin:FindFirstChildOfClass("UIScale")
 			if sc then TweenService:Create(sc, TweenInfo.new(0.14, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Scale = 0.88}):Play() end
 			local winRef = cpWin
 			local wasApply = doApply
 			task.delay(0.15, function()
 				if winRef and winRef.Parent then winRef:Destroy() end
-				if openUI then openUI() end
-				if wasApply then
-					task.delay(0.35, function() showNotification("Custom theme applied!") end)
+				if ctx.openUI then ctx.openUI() end
+				if wasApply and ctx.showNotification then
+					task.delay(0.35, function() ctx.showNotification("Custom theme applied!") end)
 				end
 			end)
 		end
