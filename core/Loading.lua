@@ -2,7 +2,7 @@ return function(services)
 	local TweenService = services.TweenService
 	local PlayerGui = services.PlayerGui
 	local Lighting = services.Lighting
-	local RunService  = services.RunService
+	local RunService = services.RunService
 
 	local loadingGui = Instance.new("ScreenGui")
 	loadingGui.Name = "GGHub_Loading"
@@ -82,7 +82,7 @@ return function(services)
 	end)
 
 	local loadingText = Instance.new("TextLabel", frame)
-	loadingText.Text = "Loading script..."
+	loadingText.Text = "Starting..."
 	loadingText.Font = Enum.Font.Gotham
 	loadingText.TextSize = 22
 	loadingText.TextColor3 = Color3.fromRGB(220, 220, 220)
@@ -95,16 +95,6 @@ return function(services)
 		TweenService:Create(loadingText, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
 	end)
 
-	local dotTexts = {"Loading script.", "Loading script..", "Loading script...", "Loading script"}
-	local dotIndex = 1
-	task.spawn(function()
-		while loadingGui and loadingGui.Parent do
-			task.wait(0.45)
-			dotIndex = (dotIndex % #dotTexts) + 1
-			loadingText.Text = dotTexts[dotIndex]
-		end
-	end)
-
 	local progressTrack = Instance.new("Frame", frame)
 	progressTrack.Size = UDim2.new(0, 368, 0, 6)
 	progressTrack.Position = UDim2.new(0, 26, 1, -36)
@@ -114,13 +104,9 @@ return function(services)
 
 	local progressBar = Instance.new("Frame", progressTrack)
 	progressBar.Size = UDim2.new(0, 0, 1, 0)
-	progressBar.Position = UDim2.new(0, 0, 0, 0)
 	progressBar.BackgroundColor3 = Color3.new(1, 1, 1)
 	progressBar.BorderSizePixel = 0
 	Instance.new("UICorner", progressBar).CornerRadius = UDim.new(1, 0)
-
-	local progressTween = TweenService:Create(progressBar, TweenInfo.new(2.2, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {Size = UDim2.new(1, 0, 1, 0)})
-	progressTween:Play()
 
 	local grid = Instance.new("Frame", frame)
 	grid.Size = UDim2.new(0, 96, 0, 96)
@@ -218,7 +204,20 @@ return function(services)
 			tw1:Play(); tw2:Play(); tw3:Play()
 			tw1.Completed:Connect(function() checkGui:Destroy() end)
 		end)
-		return { hide = function() end, blocked = true }
+		return { hide = function() end, blocked = true, setProgress = function() end }
+	end
+
+	local currentPct = 0
+
+	local function setProgress(pct, label)
+		currentPct = math.clamp(pct, 0, 1)
+		TweenService:Create(progressBar,
+			TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{Size = UDim2.new(currentPct, 0, 1, 0)}
+		):Play()
+		if label then
+			loadingText.Text = label
+		end
 	end
 
 	local function hide()
@@ -238,5 +237,5 @@ return function(services)
 		end)
 	end
 
-	return { hide = hide }
+	return { hide = hide, setProgress = setProgress }
 end
