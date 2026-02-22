@@ -160,7 +160,7 @@ return function(services)
 		p[_k](p, "\n[GGHub Security & Compatability Check]\nYour executor (Solara) is NOT supported.\nPlease use a supported executor like Bunni, wave or Xeno, or others")
 	end
 
-	local ALLOWED_PLACE_IDS = {131623223084840, 111917342868480}
+	local ALLOWED_PLACE_IDS = {131623223084840, 137629155365661, 111917342868480}
 	local placeAllowed = false
 	for _, id in ipairs(ALLOWED_PLACE_IDS) do
 		if game.PlaceId == id then placeAllowed = true; break end
@@ -239,3 +239,4 @@ return function(services)
 
 	return { hide = hide, setProgress = setProgress }
 end
+
