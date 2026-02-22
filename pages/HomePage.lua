@@ -114,6 +114,9 @@ return function(ctx)
 				else
 					showNotification("No base found to save!")
 					removingBases = false
+					table.insert(getgenv().__GGHub_Cleanup, function()
+                    removingBases = false
+                          end)
 					return
 				end
 
@@ -138,4 +141,3 @@ return function(ctx)
 		end
 	end)
 end
-
