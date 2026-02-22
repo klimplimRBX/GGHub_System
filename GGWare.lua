@@ -50,7 +50,7 @@ end
 --            COLORS & THEMES
 -- ===================================================
 
-local themes = loadModule("core/Themes.lua")({
+local themes = loadModule("core/Theme.lua")({
 	TweenService = TweenService,
 	HttpService = HttpService,
 })
