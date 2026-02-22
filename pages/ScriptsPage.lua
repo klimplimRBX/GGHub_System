@@ -254,6 +254,27 @@ return function(ctx)
 			local TOWER_POS = Vector3.new(4325, 6.3, -2.5)
 			local TOWER_UNDER_Y = -20
 			local BRAINROT_UNDER_Y = -20
+			local BRAINROT_FLAT_Y = -0.5
+
+			-- Ativar noclip
+			local noclipConn
+			noclipConn = RunService.Stepped:Connect(function()
+				if not AutoDoomTowerRunning then
+					noclipConn:Disconnect()
+					return
+				end
+				local char = LocalPlayer.Character
+				if char then
+					for _, part in ipairs(char:GetDescendants()) do
+						if part:IsA("BasePart") then
+							part.CanCollide = false
+						end
+					end
+				end
+			end)
+			table.insert(getgenv().__GGHub_Cleanup, function()
+				if noclipConn then noclipConn:Disconnect() end
+			end)
 			local function towerFlyTo(targetPos, speed)
 				speed = speed or 1200
 				local root, humanoid = getCharacterRoots()
@@ -360,7 +381,9 @@ return function(ctx)
 				if (root.Position - TOWER_POS).Magnitude >= 3 then
 					acquireMoveLock()
 					pcall(function()
-						towerFlyTo(Vector3.new(TOWER_POS.X, -0.5, TOWER_POS.Z), 1200)
+						towerFlyTo(Vector3.new(root.Position.X, TOWER_UNDER_Y, root.Position.Z), 1200)
+						task.wait(0.01)
+						towerFlyTo(Vector3.new(TOWER_POS.X, TOWER_UNDER_Y, TOWER_POS.Z), 1200)
 						task.wait(0.01)
 						towerFlyTo(TOWER_POS, 1200)
 					end)
@@ -501,7 +524,9 @@ return function(ctx)
 				pcall(function()
 					local root = getCharacterRoots()
 					if not root then return end
-					towerFlyTo(Vector3.new(root.Position.X, BRAINROT_FLAT_Y, root.Position.Z), 1200)
+					towerFlyTo(Vector3.new(root.Position.X, BRAINROT_UNDER_Y, root.Position.Z), 1200)
+					task.wait(0.01)
+					towerFlyTo(Vector3.new(pos.X, BRAINROT_UNDER_Y, pos.Z), 1200)
 					task.wait(0.01)
 					towerFlyTo(Vector3.new(pos.X, BRAINROT_FLAT_Y, pos.Z), 1200)
 				end)
@@ -512,7 +537,9 @@ return function(ctx)
 				pcall(function()
 					local root = getCharacterRoots()
 					if not root then return end
-					towerFlyTo(Vector3.new(4325, BRAINROT_FLAT_Y, -2.5), 1200)
+					towerFlyTo(Vector3.new(root.Position.X, BRAINROT_UNDER_Y, root.Position.Z), 1200)
+					task.wait(0.01)
+					towerFlyTo(Vector3.new(4325, BRAINROT_UNDER_Y, -2.5), 1200)
 					task.wait(0.01)
 					towerFlyTo(TOWER_POS, 1200)
 				end)
