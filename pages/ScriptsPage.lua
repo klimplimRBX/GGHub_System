@@ -381,7 +381,7 @@ return function(ctx)
 				return
 			end
 
-			task.wait(6)
+			task.wait(4)
 
 			local trialBar
 			pcall(function()
@@ -480,12 +480,12 @@ return function(ctx)
 				end)
 				releaseMoveLock()
 
-				holdTowerPrompt()
-				task.wait(6)
+				pcall(activateNearestInstant)
+				task.wait(4)
 
 				local current, max = depositsLabel.Text:match("(%d+)/(%d+)")
 				current = tonumber(current) or 0
-				max     = tonumber(max) or 10
+				max = tonumber(max) or 10
 
 				if current >= max then
 					showNotification("Complete!")
@@ -509,4 +509,3 @@ return function(ctx)
 		end) 
 	end)
 end
-
