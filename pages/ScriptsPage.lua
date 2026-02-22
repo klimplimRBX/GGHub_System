@@ -287,15 +287,43 @@ return function(ctx)
 				return ok
 			end
 
+			local VirtualUser = game:GetService("VirtualUser")
+			local UIS = game:GetService("UserInputService")
+
+			local function switchToPC()
+				pcall(function()
+					LocalPlayer.DevComputerMovementMode = Enum.DevComputerMovementMode.KeyboardMouse
+					LocalPlayer.DevComputerCameraMode = Enum.DevComputerCameraMode.Classic
+				end)
+			end
+
+			local function pressE()
+				VirtualUser:Button1Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+				VirtualUser:Button1Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+			end
+
+			local function holdE(duration)
+				VirtualUser:CaptureController()
+				VirtualUser:ClickButton2(Vector2.new(0,0))
+				local uis = game:GetService("UserInputService")
+				local inputObject = InputObject.new(Enum.UserInputType.Keyboard, Enum.UserInputState.Begin, Enum.KeyCode.E)
+				pcall(function() uis:InputBegan(inputObject, false) end)
+				pcall(function()
+					game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.E, false, game)
+					task.wait(duration or 2.5)
+					game:GetService("VirtualInputManager"):SendKeyEvent(false, Enum.KeyCode.E, false, game)
+				end)
+			end
+
 			local function activateNearestInstant()
 				local root = getCharacterRoots()
 				if not root then return end
 				for _, obj in ipairs(workspace:GetDescendants()) do
 					if obj:IsA("ProximityPrompt") and obj.Enabled then
 						obj.HoldDuration = 0
+						obj.MaxActivationDistance = 32
 					end
 				end
-
 				local nearestPrompt, shortestDist = nil, math.huge
 				for _, obj in ipairs(workspace:GetDescendants()) do
 					if obj:IsA("ProximityPrompt") and obj.Enabled then
@@ -311,11 +339,13 @@ return function(ctx)
 				end
 				if nearestPrompt then
 					nearestPrompt.RequiresLineOfSight = false
+					nearestPrompt.HoldDuration = 0
+					nearestPrompt.MaxActivationDistance = 32
 					pcall(fireproximityprompt, nearestPrompt)
+					task.wait(0.05)
 					nearestPrompt:InputHoldBegin()
-					task.wait(nearestPrompt.HoldDuration + 0.05)
+					task.wait(0.1)
 					nearestPrompt:InputHoldEnd()
-					pcall(fireproximityprompt, nearestPrompt)
 				end
 			end
 
@@ -353,6 +383,7 @@ return function(ctx)
 			local function holdTowerPrompt()
 				local root = getCharacterRoots()
 				if not root then return false end
+				switchToPC()
 				root.CFrame = CFrame.new(TOWER_POS)
 				root.AssemblyLinearVelocity = Vector3.zero
 				task.wait(0.2)
@@ -361,9 +392,13 @@ return function(ctx)
 				local activated = false
 				pcall(function()
 					towerPrompt.RequiresLineOfSight = false
+					towerPrompt.MaxActivationDistance = 32
 					pcall(fireproximityprompt, towerPrompt)
+					task.wait(0.1)
 					towerPrompt:InputHoldBegin()
+					game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.E, false, game)
 					task.wait(2.5)
+					game:GetService("VirtualInputManager"):SendKeyEvent(false, Enum.KeyCode.E, false, game)
 					towerPrompt:InputHoldEnd()
 					pcall(fireproximityprompt, towerPrompt)
 					activated = true
