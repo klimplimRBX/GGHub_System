@@ -480,12 +480,18 @@ return function(ctx)
 				end)
 				releaseMoveLock()
 
-				pcall(activateNearestInstant)
+				local root = getCharacterRoots()
+				if root and (root.Position - TOWER_POS).Magnitude <= 5 then
+					pcall(activateNearestInstant)
+				else
+					showNotification("Failed to reach tower for deposit!")
+				end
+
 				task.wait(4)
 
 				local current, max = depositsLabel.Text:match("(%d+)/(%d+)")
 				current = tonumber(current) or 0
-				max = tonumber(max) or 10
+				max     = tonumber(max) or 10
 
 				if current >= max then
 					showNotification("Complete!")
@@ -509,3 +515,4 @@ return function(ctx)
 		end) 
 	end)
 end
+
