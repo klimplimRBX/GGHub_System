@@ -310,9 +310,12 @@ return function(ctx)
 					end
 				end
 				if nearestPrompt then
+					nearestPrompt.RequiresLineOfSight = false
+					pcall(fireproximityprompt, nearestPrompt)
 					nearestPrompt:InputHoldBegin()
 					task.wait(nearestPrompt.HoldDuration + 0.05)
 					nearestPrompt:InputHoldEnd()
+					pcall(fireproximityprompt, nearestPrompt)
 				end
 			end
 
@@ -350,20 +353,19 @@ return function(ctx)
 			local function holdTowerPrompt()
 				local root = getCharacterRoots()
 				if not root then return false end
-				local promptPart = towerPrompt.Parent
-				if promptPart and promptPart:IsA("BasePart") then
-					local dist = (root.Position - promptPart.Position).Magnitude
-					if dist > towerPrompt.MaxActivationDistance then
-						towerFlyTo(promptPart.Position + Vector3.new(0, 2, 0), 800)
-					end
-				end
+				root.CFrame = CFrame.new(TOWER_POS)
+				root.AssemblyLinearVelocity = Vector3.zero
+				task.wait(0.2)
 				root = getCharacterRoots()
 				if root then root.Anchored = true end
 				local activated = false
 				pcall(function()
+					towerPrompt.RequiresLineOfSight = false
+					pcall(fireproximityprompt, towerPrompt)
 					towerPrompt:InputHoldBegin()
 					task.wait(2.5)
 					towerPrompt:InputHoldEnd()
+					pcall(fireproximityprompt, towerPrompt)
 					activated = true
 				end)
 				if root then root.Anchored = false end
