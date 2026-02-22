@@ -14,6 +14,7 @@ if getgenv().__GGHub_Running then
 	return
 end
 getgenv().__GGHub_Running = true
+getgenv().__GGHub_Cleanup = {}
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
