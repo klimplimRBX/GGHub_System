@@ -265,16 +265,17 @@ local function loadOldScript(url)
     end
     task.wait(0.1)
     loadstring(game:HttpGet(url))()
-end
+  end
 
 createButton(settingsPage, "Valentine Event Script", "Goes to the valentine event GGHub version", function()
     loadOldScript("PLACEHOLDER_URL_1")
-end)
+  end)
 
 createButton(settingsPage, "Arcade Event Script", "Goes to the arcade event GGHub version", function()
     loadOldScript("PLACEHOLDER_URL_2")
-end)
+  end)
 
 createButton(settingsPage, "Money Event Script", "Goes to the Money event GGHub version", function()
     loadOldScript("PLACEHOLDER_URL_3")
-end)
+  end)
+end
