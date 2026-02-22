@@ -563,7 +563,7 @@ end)
 --          NOTIFICATION SYSTEM
 -- ===================================================
 
-local notifModule = loadModule("core/Notification.lua")({
+local notifModule = loadModule("core/Notifications.lua")({
 	TweenService = TweenService,
 	RunService = RunService,
 	Colors = Colors,
