@@ -687,6 +687,11 @@ task.spawn(function()
 		mapPage = mapPage,
 		LocalPlayer = LocalPlayer,
 		RunService = RunService,
+		Colors = Colors,
+		reg = reg,
+		gui = gui,
+		openUI = function() if openUI then openUI() end end,
+		closeUI = function() if closeUI then closeUI() end end,
 	})
 	pagesLoaded += 1
 end)
