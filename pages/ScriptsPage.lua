@@ -244,13 +244,14 @@ return function(ctx)
 		workspace.Gravity = 196.2
 	end)
 
-	createToggle(scriptPage, "Auto Doom Tower", "Completes the Doom Tower Automatically for you", function(state)
-		AutoDoomTowerRunning = state
-		if not state then
+	createButton(scriptPage, "Auto Doom Tower", "Completes the Doom Tower Automatically for you", function()
+		if AutoDoomTowerRunning then
+			AutoDoomTowerRunning = false
 			showNotification("Auto Doom Tower stopped.")
 			workspace.Gravity = 196.2
 			return
 		end
+		AutoDoomTowerRunning = true
 		workspace.Gravity = 5
 		task.spawn(function()
 
@@ -258,6 +259,19 @@ return function(ctx)
 			local TOWER_UNDER_Y = -20
 			local BRAINROT_UNDER_Y = -20
 			local BRAINROT_FLAT_Y = -0.5
+
+			local flySpeed = 1200
+			pcall(function()
+				local val = LocalPlayer.PlayerGui:WaitForChild("BottomLeft", 5)
+					:WaitForChild("JumpAndSpeed", 5)
+					:WaitForChild("Container", 5)
+					:WaitForChild("EventCurrency", 5)
+					:WaitForChild("Value", 5)
+				local speed = tonumber(val.Text)
+				if speed then
+					flySpeed = (speed * 2) - 50
+				end
+			end)
 
 			local noclipConn
 			noclipConn = RunService.Stepped:Connect(function()
@@ -393,11 +407,11 @@ return function(ctx)
 				if (root.Position - TOWER_POS).Magnitude >= 3 then
 					acquireMoveLock()
 					pcall(function()
-						towerFlyTo(Vector3.new(root.Position.X, TOWER_UNDER_Y, root.Position.Z), 1200)
+						towerFlyTo(Vector3.new(root.Position.X, TOWER_UNDER_Y, root.Position.Z), flySpeed)
 						task.wait(0.01)
-						towerFlyTo(Vector3.new(TOWER_POS.X, TOWER_UNDER_Y, TOWER_POS.Z), 1200)
+						towerFlyTo(Vector3.new(TOWER_POS.X, TOWER_UNDER_Y, TOWER_POS.Z), flySpeed)
 						task.wait(0.01)
-						towerFlyTo(TOWER_POS, 1200)
+						towerFlyTo(TOWER_POS, flySpeed)
 					end)
 					releaseMoveLock()
 				end
@@ -500,6 +514,12 @@ return function(ctx)
 
 			while AutoDoomTowerRunning do
 
+				pcall(function()
+					local val = LocalPlayer.PlayerGui.BottomLeft.JumpAndSpeed.Container.EventCurrency.Value
+					local speed = tonumber(val.Text)
+					if speed then flySpeed = (speed * 2) - 50 end
+				end)
+
 				local brainrotFolder = workspace:FindFirstChild("ActiveBrainrots")
 				if not brainrotFolder then
 					showNotification("ActiveBrainrots not found!")
@@ -526,34 +546,58 @@ return function(ctx)
 					continue
 				end
 
-				local BRAINROT_FLAT_Y = -0.5
+				local collected = false
+				local attempts = 0
+				while not collected and AutoDoomTowerRunning and attempts < #renderedList do
+					attempts = attempts + 1
+					local idx = math.random(1, #renderedList)
+					local target = renderedList[idx]
+					if not target or not target.Parent then
+						table.remove(renderedList, idx)
+						continue
+					end
+					local pos = getPosition(target)
+					if not pos then continue end
 
-				local target = renderedList[math.random(1, #renderedList)]
-				local pos = getPosition(target)
-				if not pos then task.wait(0.5) continue end
+					acquireMoveLock()
+					pcall(function()
+						local root = getCharacterRoots()
+						if not root then return end
+						towerFlyTo(Vector3.new(root.Position.X, BRAINROT_UNDER_Y, root.Position.Z), flySpeed)
+						task.wait(0.01)
+						towerFlyTo(Vector3.new(pos.X, BRAINROT_UNDER_Y, pos.Z), flySpeed)
+						task.wait(0.01)
+						towerFlyTo(Vector3.new(pos.X, BRAINROT_FLAT_Y, pos.Z), flySpeed)
+					end)
+					releaseMoveLock()
 
-				acquireMoveLock()
+ 
+					if not target.Parent then continue end
+
+					task.wait(0.5)
+
+					local beforeParent = target.Parent
+					pcall(activateNearestInstant)
+					task.wait(0.3)
+
+					if not target.Parent or target.Parent ~= beforeParent then
+						collected = true
+					end
+				end
+
+				if not collected then
+					task.wait(0.5)
+					continue
+				end
+
 				pcall(function()
 					local root = getCharacterRoots()
 					if not root then return end
-					towerFlyTo(Vector3.new(root.Position.X, BRAINROT_UNDER_Y, root.Position.Z), 1200)
+					towerFlyTo(Vector3.new(root.Position.X, BRAINROT_UNDER_Y, root.Position.Z), flySpeed)
 					task.wait(0.01)
-					towerFlyTo(Vector3.new(pos.X, BRAINROT_UNDER_Y, pos.Z), 1200)
+					towerFlyTo(Vector3.new(4325, BRAINROT_UNDER_Y, -2.5), flySpeed)
 					task.wait(0.01)
-					towerFlyTo(Vector3.new(pos.X, BRAINROT_FLAT_Y, pos.Z), 1200)
-				end)
-
-				task.wait(0.5)
-				pcall(activateNearestInstant)
-
-				pcall(function()
-					local root = getCharacterRoots()
-					if not root then return end
-					towerFlyTo(Vector3.new(root.Position.X, BRAINROT_UNDER_Y, root.Position.Z), 1200)
-					task.wait(0.01)
-					towerFlyTo(Vector3.new(4325, BRAINROT_UNDER_Y, -2.5), 1200)
-					task.wait(0.01)
-					towerFlyTo(TOWER_POS, 1200)
+					towerFlyTo(TOWER_POS, flySpeed)
 				end)
 				releaseMoveLock()
 
