@@ -252,6 +252,7 @@ return function(ctx)
 			return
 		end
 		AutoDoomTowerRunning = true
+		showNotification("Starting...")
 		workspace.Gravity = 5
 		task.spawn(function()
 
@@ -640,3 +641,4 @@ return function(ctx)
 		end) 
 	end)
 end
+
