@@ -641,10 +641,10 @@ return function(ctx)
 		end) 
 	end)
 	local note = Instance.new("TextLabel")
-	note.Text = "Note: If you started the Auto Doom Tower and you want to stop It, just click the button again, also, It does not auto collect the reward you win, well also make that, but we wanted to update It more quickly so we launched It like this, anyways have a great time using this :)"
+	note.Text = "Note: If you started the Auto Doom Tower and you want to stop It, just click the button again, also, It does not auto collect the reward you win, well also make that, but we wanted to update It more quickly so we launched It like this, and if you're on mobile, it changes from the dynamic thumbstick to the Keyboard, to fix, open the roblox menu and close, simple, anyways have a great time using this :)"
 	note.Size = UDim2.new(1, -20, 0, 50)
 	note.BackgroundTransparency = 1
-	note.TextColor3 = Color3.fromRGB(180, 180, 180)
+	note.TextColor3 = Color3.fromRGB(220, 220, 220)
 	note.Font = Enum.Font.Gotham
 	note.TextSize = 10
 	note.TextWrapped = true
@@ -652,3 +652,4 @@ return function(ctx)
 	note.TextYAlignment = Enum.TextYAlignment.Top
 	note.Parent = scriptPage
 end
+
