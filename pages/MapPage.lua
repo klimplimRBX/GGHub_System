@@ -5,19 +5,29 @@ return function(ctx)
 	local LocalPlayer = ctx.LocalPlayer
 	local RunService = ctx.RunService
 
-	-- ===================================================
-	--         🗺️ MAP PAGE CONTENT
-	-- ===================================================
+	local function getEventCurrencySpeed()
+		local speed = 1000
+		pcall(function()
+			local val = LocalPlayer.PlayerGui:WaitForChild("BottomLeft", 5)
+				:WaitForChild("JumpAndSpeed", 5)
+				:WaitForChild("Container", 5)
+				:WaitForChild("EventCurrency", 5)
+				:WaitForChild("Value", 5)
+			local v = tonumber(val.Text)
+			if v then speed = v * 1.75 end
+		end)
+		return speed
+	end
 
 	local function flyThroughWaypoints(waypoints, speed)
 		local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 		local root = character:WaitForChild("HumanoidRootPart")
+		local humanoid = character:WaitForChild("Humanoid")
 
-		speed = speed or 1000
-		local noclip = true
+		speed = speed or getEventCurrencySpeed()
 
 		local noclipConn = RunService.Stepped:Connect(function()
-			if noclip and character then
+			if character then
 				for _, part in ipairs(character:GetDescendants()) do
 					if part:IsA("BasePart") then
 						part.CanCollide = false
@@ -27,19 +37,23 @@ return function(ctx)
 		end)
 
 		for i, targetPos in ipairs(waypoints) do
-			while (root.Position - targetPos).Magnitude > 2 do
-				local direction = (targetPos - root.Position).Unit
+			while (root.Position - targetPos).Magnitude > 1.5 do
 				local dt = RunService.Heartbeat:Wait()
-				root.CFrame = root.CFrame + (direction * speed * dt)
-				root.Velocity = Vector3.new(0, 0, 0)
+				if not root or not root.Parent then break end
+				local remaining = targetPos - root.Position
+				local step = math.min(speed * dt, remaining.Magnitude)
+				root.CFrame = root.CFrame + remaining.Unit * step
+				root.AssemblyLinearVelocity = Vector3.zero
 			end
+			root.CFrame = CFrame.new(targetPos)
+			root.AssemblyLinearVelocity = Vector3.zero
+			root.AssemblyAngularVelocity = Vector3.zero
 
 			if i < #waypoints then
-				task.wait(0.25)
+				task.wait(0.01)
 			end
 		end
 
-		noclip = false
 		noclipConn:Disconnect()
 		for _, part in ipairs(character:GetDescendants()) do
 			if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
@@ -61,7 +75,7 @@ return function(ctx)
 				Vector3.new(4025.0, -2.7, 0)
 			}
 
-			flyThroughWaypoints(waypoints, 1000)
+			flyThroughWaypoints(waypoints, getEventCurrencySpeed())
 			showNotification("Arrived at celestial area!")
 		end)
 	end)
@@ -79,7 +93,7 @@ return function(ctx)
 				Vector3.new(125, 3.3, 0)
 			}
 
-			flyThroughWaypoints(waypoints, 1000)
+			flyThroughWaypoints(waypoints, getEventCurrencySpeed())
 			showNotification("Arrived at base!")
 		end)
 	end)
