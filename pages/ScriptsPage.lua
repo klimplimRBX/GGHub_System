@@ -273,6 +273,12 @@ return function(ctx)
 			local BRAINROT_UNDER_Y = -20
 			local BRAINROT_FLAT_Y = -0.5
 
+			local function stopTower(msg)
+				AutoDoomTowerRunning = false
+				workspace.Gravity = 196.2
+				if msg then showNotification(msg) end
+			end
+
 			local flySpeed = 1200 --fallback
 			pcall(function()
 				local val = LocalPlayer.PlayerGui.BottomLeft.JumpAndSpeed.Container.EventCurrency.Value
@@ -411,7 +417,7 @@ return function(ctx)
 
 			do
 				local root = getCharacterRoots()
-				if not root then showNotification("No character found!") AutoDoomTowerRunning = false return end
+				if not root then stopTower("No character found!") return end
 
 				if (root.Position - TOWER_POS).Magnitude >= 3 then
 					acquireMoveLock()
@@ -427,8 +433,7 @@ return function(ctx)
 
 				root = getCharacterRoots()
 				if not root or (root.Position - TOWER_POS).Magnitude >= 3 then
-					showNotification("Failed to reach tower position!")
-					AutoDoomTowerRunning = false
+					stopTower("Failed to reach tower position!")
 					return
 				end
 			end
@@ -438,8 +443,7 @@ return function(ctx)
 				towerPrompt = workspace.GameObjects.PlaceSpecific.root.Tower.Main.Prompt.ProximityPrompt
 			end)
 			if not towerPrompt then
-				showNotification("Tower prompt not found!")
-				AutoDoomTowerRunning = false
+				stopTower("Tower prompt not found!")
 				return
 			end
 
@@ -474,8 +478,7 @@ return function(ctx)
 
 			local activated = holdTowerPrompt()
 			if not activated then
-				showNotification("Failed to activate tower prompt!")
-				AutoDoomTowerRunning = false
+				stopTower("Failed to activate tower prompt!")
 				return
 			end
 
@@ -486,16 +489,14 @@ return function(ctx)
 				trialBar = LocalPlayer.PlayerGui:WaitForChild("TowerTrialHUD", 15):WaitForChild("TrialBar", 15)
 			end)
 			if not trialBar then
-				showNotification("Something went wrong")
-				AutoDoomTowerRunning = false
+				stopTower("Something went wrong")
 				return
 			end
 
 			local requirementLabel = trialBar:FindFirstChild("Requirement")
 			local depositsLabel = trialBar:FindFirstChild("Deposits")
 			if not requirementLabel or not depositsLabel then
-				showNotification("Something was not found")
-				AutoDoomTowerRunning = false
+				stopTower("Something was not found")
 				return
 			end
 
@@ -503,7 +504,7 @@ return function(ctx)
 
 			local foundKeyword
 			local elapsed = 0
-			while not foundKeyword and elapsed < 15 do
+			while not foundKeyword and elapsed < 3 do
 				for _, kw in ipairs(keywords) do
 					if requirementLabel.Text:find(kw) then
 						foundKeyword = kw
@@ -516,8 +517,7 @@ return function(ctx)
 				end
 			end
 			if not foundKeyword then
-				showNotification("Could not identify Tower requirement")
-				AutoDoomTowerRunning = false
+				stopTower("Could not identify Tower requirement")
 				return
 			end
 
@@ -531,15 +531,14 @@ return function(ctx)
 
 				local brainrotFolder = workspace:FindFirstChild("ActiveBrainrots")
 				if not brainrotFolder then
-					showNotification("ActiveBrainrots not found! - Wait how is there not any Brainrot spawned? Are you the admin?")
-					AutoDoomTowerRunning = false
+					stopTower("ActiveBrainrots not found! - Wait how is there not any Brainrot spawned? Are you the admin?")
 					return
 				end
 
 				local keywordFolder = brainrotFolder:FindFirstChild(foundKeyword)
 				if not keywordFolder then
 					showNotification(foundKeyword .. " folder not found!")
-					AutoDoomTowerRunning = false
+					stopTower()
 					return
 				end
 
@@ -627,9 +626,7 @@ return function(ctx)
 				max = tonumber(max) or 10
 
 				if current >= max then
-					showNotification("Complete!")
-					workspace.Gravity = 196.2
-					AutoDoomTowerRunning = false
+					stopTower("Complete!")
 					return
 				end
 
