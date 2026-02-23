@@ -7,6 +7,16 @@ return function(ctx)
 	local RunService = ctx.RunService
 	local Workspace = game:GetService("Workspace")
 
+	local function getEventCurrencySpeed()
+		local speed = 1000
+		pcall(function()
+			local val = LocalPlayer.PlayerGui.BottomLeft.JumpAndSpeed.Container.EventCurrency.Value
+			local v = tonumber(val.Text)
+			if v then speed = v * 1.75 end
+		end)
+		return speed
+	end
+
 	local AutoFarmDoomCoinEnabled = false
 	local AutoPressDoomButtonEnabled = false
 	local lastCollectedDoomCoin = nil
@@ -101,12 +111,13 @@ return function(ctx)
 
 		acquireMoveLock()
 		local ok, err = pcall(function()
+			local spd = getEventCurrencySpeed()
 			local cx, cz = root.Position.X, root.Position.Z
-			flyToPos(Vector3.new(cx, -25, cz), 1000)
+			flyToPos(Vector3.new(cx, -25, cz), spd)
 			task.wait(0.01)
-			flyToPos(Vector3.new(targetPos.X, -25, targetPos.Z), 1000)
+			flyToPos(Vector3.new(targetPos.X, -25, targetPos.Z), spd)
 			task.wait(0.01)
-			flyToPos(Vector3.new(targetPos.X, heightOffset, targetPos.Z), 1000)
+			flyToPos(Vector3.new(targetPos.X, heightOffset, targetPos.Z), spd)
 			task.wait(0.01)
 		end)
 		releaseMoveLock()
@@ -205,9 +216,10 @@ return function(ctx)
 										pcall(function()
 											local root = getCharacterRoots()
 											if root then
-												flyToPos(Vector3.new(pos.X, -25, pos.Z), 2000)
+												local spd = getEventCurrencySpeed()
+												flyToPos(Vector3.new(pos.X, -25, pos.Z), spd)
 												task.wait(0.01)
-												flyToPos(Vector3.new(pos.X, pos.Y + 3, pos.Z), 2000)
+												flyToPos(Vector3.new(pos.X, pos.Y + 3, pos.Z), spd)
 												task.wait(0.5)
 											end
 											for _ = 1, 3 do
@@ -263,14 +275,10 @@ return function(ctx)
 
 			local flySpeed = 1200 --fallback
 			pcall(function()
-				local val = LocalPlayer.PlayerGui:WaitForChild("BottomLeft", 5)
-					:WaitForChild("JumpAndSpeed", 5)
-					:WaitForChild("Container", 5)
-					:WaitForChild("EventCurrency", 5)
-					:WaitForChild("Value", 5)
+				local val = LocalPlayer.PlayerGui.BottomLeft.JumpAndSpeed.Container.EventCurrency.Value
 				local speed = tonumber(val.Text)
 				if speed then
-					flySpeed = (speed * 2) - 50
+					flySpeed = (speed * 2.5) - 50
 				end
 			end)
 
@@ -518,7 +526,7 @@ return function(ctx)
 				pcall(function()
 					local val = LocalPlayer.PlayerGui.BottomLeft.JumpAndSpeed.Container.EventCurrency.Value
 					local speed = tonumber(val.Text)
-					if speed then flySpeed = (speed * 2) - 50 end
+					if speed then flySpeed = (speed * 2.5) - 50 end
 				end)
 
 				local brainrotFolder = workspace:FindFirstChild("ActiveBrainrots")
@@ -575,11 +583,11 @@ return function(ctx)
  
 					if not target.Parent then continue end
 
-					task.wait(0.5)
+					task.wait(0.05)
 
 					local beforeParent = target.Parent
 					pcall(activateNearestInstant)
-					task.wait(0.3)
+					task.wait(0.05)
 
 					if not target.Parent or target.Parent ~= beforeParent then
 						collected = true
