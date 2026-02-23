@@ -5,6 +5,7 @@ return function(ctx)
 	local scriptPage = ctx.scriptPage
 	local LocalPlayer = ctx.LocalPlayer
 	local RunService = ctx.RunService
+	local Colors = ctx.Colors
 	local Workspace = game:GetService("Workspace")
 
 	local AutoFarmDoomCoinEnabled = false
@@ -640,5 +641,15 @@ return function(ctx)
 			end 
 		end) 
 	end)
+	local note = Instance.new("TextLabel")
+	note.Text = "Note: If you started the Auto Doom Tower and you want to stop It, just click the button again, also, It does not auto collect the reward you win, well also make that, but we wanted to update It more quickly so we launched It like this, anyways have a great time using this :)"
+	note.Size = UDim2.new(1, -20, 0, 50)
+	note.BackgroundTransparency = 1
+	note.TextColor3 = Colors.TextSub
+	note.Font = Enum.Font.Gotham
+	note.TextSize = 10
+	note.TextWrapped = true
+	note.TextXAlignment = Enum.TextXAlignment.Left
+	note.TextYAlignment = Enum.TextYAlignment.Top
+	note.Parent = scriptPage
 end
-
