@@ -8,11 +8,7 @@ return function(ctx)
 	local function getEventCurrencySpeed()
 		local speed = 1000
 		pcall(function()
-			local val = LocalPlayer.PlayerGui:WaitForChild("BottomLeft", 5)
-				:WaitForChild("JumpAndSpeed", 5)
-				:WaitForChild("Container", 5)
-				:WaitForChild("EventCurrency", 5)
-				:WaitForChild("Value", 5)
+			local val = LocalPlayer.PlayerGui.BottomLeft.JumpAndSpeed.Container.EventCurrency.Value
 			local v = tonumber(val.Text)
 			if v then speed = v * 1.75 end
 		end)
