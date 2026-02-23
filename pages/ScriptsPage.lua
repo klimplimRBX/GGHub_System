@@ -244,10 +244,10 @@ return function(ctx)
 		workspace.Gravity = 196.2
 	end)
 
-	createButton(scriptPage, "Auto Doom Tower", "Completes the Doom Tower Automatically for you", function()
+	createButton(scriptPage, "Auto Complete Tower", "Completes the Tower Automatically for you", function()
 		if AutoDoomTowerRunning then
 			AutoDoomTowerRunning = false
-			showNotification("Auto Doom Tower stopped.")
+			showNotification("Auto Tower stopped.")
 			workspace.Gravity = 196.2
 			return
 		end
@@ -261,7 +261,7 @@ return function(ctx)
 			local BRAINROT_UNDER_Y = -20
 			local BRAINROT_FLAT_Y = -0.5
 
-			local flySpeed = 1200
+			local flySpeed = 1200 --fallback
 			pcall(function()
 				local val = LocalPlayer.PlayerGui:WaitForChild("BottomLeft", 5)
 					:WaitForChild("JumpAndSpeed", 5)
@@ -293,7 +293,7 @@ return function(ctx)
 				if noclipConn then noclipConn:Disconnect() end
 			end)
 			local function towerFlyTo(targetPos, speed)
-				speed = speed or 1200
+				speed = speed or 1200 -- fallback 2
 				local root, humanoid = getCharacterRoots()
 				if not isCharacterAlive(root, humanoid) then
 					LocalPlayer.CharacterAdded:Wait()
@@ -478,7 +478,7 @@ return function(ctx)
 				trialBar = LocalPlayer.PlayerGui:WaitForChild("TowerTrialHUD", 15):WaitForChild("TrialBar", 15)
 			end)
 			if not trialBar then
-				showNotification("TowerTrialHUD not found!")
+				showNotification("Something went wrong")
 				AutoDoomTowerRunning = false
 				return
 			end
@@ -486,7 +486,7 @@ return function(ctx)
 			local requirementLabel = trialBar:FindFirstChild("Requirement")
 			local depositsLabel = trialBar:FindFirstChild("Deposits")
 			if not requirementLabel or not depositsLabel then
-				showNotification("Trial HUD elements not found!")
+				showNotification("Something was not found")
 				AutoDoomTowerRunning = false
 				return
 			end
@@ -508,7 +508,7 @@ return function(ctx)
 				end
 			end
 			if not foundKeyword then
-				showNotification("Could not identify Tower Trial keyword!")
+				showNotification("Could not identify Tower requirement")
 				AutoDoomTowerRunning = false
 				return
 			end
@@ -523,7 +523,7 @@ return function(ctx)
 
 				local brainrotFolder = workspace:FindFirstChild("ActiveBrainrots")
 				if not brainrotFolder then
-					showNotification("ActiveBrainrots not found!")
+					showNotification("ActiveBrainrots not found! - Wait how is there not any Brainrot spawned? Are you the admin?")
 					AutoDoomTowerRunning = false
 					return
 				end
@@ -641,7 +641,7 @@ return function(ctx)
 		end) 
 	end)
 	local note = Instance.new("TextLabel")
-	note.Text = "Note: If you started the Auto Doom Tower and you want to stop It, just click the button again, also, It does not auto collect the reward you win, well also make that, but we wanted to update It more quickly so we launched It like this, and if you're on mobile, it changes from the dynamic thumbstick to the Keyboard, to fix, open the roblox menu and close, simple, anyways have a great time using this :)"
+	note.Text = "Note: MAKE SURE THE TOWER IS AVAIABLE AND NOT ON COOLDOWN - If you started the Auto Doom Tower and you want to stop It, just click the button again, also, It does not auto collect the reward you win, well also make that, but we wanted to update It more quickly so we launched It like this, and if you're on mobile, it changes from the dynamic thumbstick to the Keyboard, to fix, open the roblox menu and close, simple, anyways have a great time using this :)"
 	note.Size = UDim2.new(1, -20, 0, 50)
 	note.BackgroundTransparency = 1
 	note.TextColor3 = Color3.fromRGB(220, 220, 220)
@@ -652,4 +652,3 @@ return function(ctx)
 	note.TextYAlignment = Enum.TextYAlignment.Top
 	note.Parent = scriptPage
 end
-
