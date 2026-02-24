@@ -333,10 +333,14 @@ return function(ctx)
 		_createDialogOpen = true
 		closeUI()
 
+		local HEIGHT_COMPACT  = 236
+		local HEIGHT_EXPANDED = 303
+		local WIN_W = 320
+
 		local win = Instance.new("Frame")
 		win.Name = "WaypointCreateDialog"
-		win.Size = UDim2.new(0, 320, 0, 295)
-		win.Position = UDim2.new(0.5, -160, 0.5, -147)
+		win.Size = UDim2.new(0, WIN_W, 0, HEIGHT_COMPACT)
+		win.Position = UDim2.new(0.5, -WIN_W / 2, 0.5, -HEIGHT_COMPACT / 2)
 		win.BackgroundColor3 = Colors.Background
 		win.BorderSizePixel = 0
 		win.ZIndex = 100
@@ -345,6 +349,36 @@ return function(ctx)
 		local wStroke = Instance.new("UIStroke", win)
 		wStroke.Color = Colors.Stroke
 		wStroke.Thickness = 1
+
+		local dragging = false
+		local dragStart = nil
+		local startPos = nil
+
+		win.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 then
+				dragging = true
+				dragStart = input.Position
+				startPos = win.Position
+			end
+		end)
+
+		win.InputChanged:Connect(function(input)
+			if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+				local delta = input.Position - dragStart
+				win.Position = UDim2.new(
+					startPos.X.Scale,
+					startPos.X.Offset + delta.X,
+					startPos.Y.Scale,
+					startPos.Y.Offset + delta.Y
+				)
+			end
+		end)
+
+		win.InputEnded:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 then
+				dragging = false
+			end
+		end)
 
 		local titleLabel = Instance.new("TextLabel")
 		titleLabel.Text = "Create Waypoint"
@@ -370,7 +404,7 @@ return function(ctx)
 		closeX.AutoButtonColor = false
 		closeX.ZIndex = 102
 		closeX.Parent = win
-		Instance.new("UICorner", closeX).CornerRadius = UDim.new(1, 0)
+		Instance.new("UICorner", closeX).CornerRadius = UDim.new(0, 7)
 
 		local sep = Instance.new("Frame")
 		sep.Size = UDim2.new(1, -20, 0, 1)
@@ -421,11 +455,11 @@ return function(ctx)
 		posLbl.ZIndex = 101
 		posLbl.Parent = win
 
-		local useCurrentPos = true
+		local BTN_W = (WIN_W - 30 - 8) / 2
 
 		local optCurrent = Instance.new("TextButton")
 		optCurrent.Text = "Current Position"
-		optCurrent.Size = UDim2.new(0, 138, 0, 34)
+		optCurrent.Size = UDim2.new(0, BTN_W, 0, 34)
 		optCurrent.Position = UDim2.new(0, 15, 0, 134)
 		optCurrent.BackgroundColor3 = Colors.Accent
 		optCurrent.TextColor3 = Color3.new(1, 1, 1)
@@ -438,8 +472,8 @@ return function(ctx)
 
 		local optCustom = Instance.new("TextButton")
 		optCustom.Text = "Custom Coordinates"
-		optCustom.Size = UDim2.new(0, 152, 0, 34)
-		optCustom.Position = UDim2.new(0, 161, 0, 134)
+		optCustom.Size = UDim2.new(0, BTN_W, 0, 34)
+		optCustom.Position = UDim2.new(0, 15 + BTN_W + 8, 0, 134)
 		optCustom.BackgroundColor3 = Colors.ItemBG
 		optCustom.TextColor3 = Colors.TextMain
 		optCustom.Font = Enum.Font.GothamBold
@@ -502,7 +536,7 @@ return function(ctx)
 		local createBtn = Instance.new("TextButton")
 		createBtn.Text = "Create Waypoint"
 		createBtn.Size = UDim2.new(1, -30, 0, 38)
-		createBtn.Position = UDim2.new(0, 15, 1, -53)
+		createBtn.Position = UDim2.new(0, 15, 0, HEIGHT_COMPACT - 38 - 15)
 		createBtn.BackgroundColor3 = Colors.Accent
 		createBtn.TextColor3 = Color3.new(1, 1, 1)
 		createBtn.Font = Enum.Font.GothamBold
@@ -512,23 +546,33 @@ return function(ctx)
 		createBtn.Parent = win
 		Instance.new("UICorner", createBtn).CornerRadius = UDim.new(0, 8)
 
+		local useCurrentPos = true
+
 		local function selectCurrentPos()
 			useCurrentPos = true
 			coordsFrame.Visible = false
-			TweenService:Create(optCurrent, TweenInfo.new(0.11), {BackgroundColor3 = Colors.Accent, TextColor3 = Color3.new(1,1,1)}):Play()
+			TweenService:Create(win, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				Size = UDim2.new(0, WIN_W, 0, HEIGHT_COMPACT)
+			}):Play()
+			createBtn.Position = UDim2.new(0, 15, 0, HEIGHT_COMPACT - 38 - 15)
+			TweenService:Create(optCurrent, TweenInfo.new(0.11), {BackgroundColor3 = Colors.Accent, TextColor3 = Color3.new(1, 1, 1)}):Play()
 			TweenService:Create(optCustom, TweenInfo.new(0.11), {BackgroundColor3 = Colors.ItemBG, TextColor3 = Colors.TextMain}):Play()
 		end
 
 		local function selectCustomCoords()
 			useCurrentPos = false
 			coordsFrame.Visible = true
+			TweenService:Create(win, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				Size = UDim2.new(0, WIN_W, 0, HEIGHT_EXPANDED)
+			}):Play()
+			createBtn.Position = UDim2.new(0, 15, 0, HEIGHT_EXPANDED - 38 - 15)
 			pcall(function()
 				local root = LocalPlayer.Character:WaitForChild("HumanoidRootPart", 2)
 				xBox.Text = tostring(math.floor(root.Position.X + 0.5))
 				yBox.Text = tostring(math.floor(root.Position.Y + 0.5))
 				zBox.Text = tostring(math.floor(root.Position.Z + 0.5))
 			end)
-			TweenService:Create(optCustom, TweenInfo.new(0.11), {BackgroundColor3 = Colors.Accent, TextColor3 = Color3.new(1,1,1)}):Play()
+			TweenService:Create(optCustom, TweenInfo.new(0.11), {BackgroundColor3 = Colors.Accent, TextColor3 = Color3.new(1, 1, 1)}):Play()
 			TweenService:Create(optCurrent, TweenInfo.new(0.11), {BackgroundColor3 = Colors.ItemBG, TextColor3 = Colors.TextMain}):Play()
 		end
 
