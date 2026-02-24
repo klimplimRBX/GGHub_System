@@ -214,45 +214,58 @@ return function(ctx)
 		end
 	end
 
-	local function clickYesButton()
-		local screenSize = workspace.CurrentCamera.ViewportSize
-		local scx = screenSize.X / 2
-		local scy = screenSize.Y / 2
-		local found = false
-		local foundX, foundY = nil, nil
-		if getcolor then
-			local startX = math.max(0, scx - 500)
-			local startY = math.max(0, scy - 500)
-			local endX = math.min(screenSize.X, scx + 500)
-			local endY = math.min(screenSize.Y, scy + 500)
-			local step = 8
-			local tol = 18
-			for y = startY, endY, step do
-				for x = startX, endX, step do
-					local ok, pr, pg, pb = pcall(getcolor, x, y)
-					if ok and pr then
-						if math.abs(pr - 224) <= tol and math.abs(pg - 55) <= tol and math.abs(pb - 55) <= tol then
-							foundX = x
-							foundY = y
-							found = true
-							break
-						end
-					end
-				end
-				if found then break end
+	local TOWER_SYS_PATH = "GGHub/TowerSys.json"
+	local towerYesPos = nil
+
+	pcall(function()
+		if isfile(TOWER_SYS_PATH) then
+			local data = game:GetService("HttpService"):JSONDecode(readfile(TOWER_SYS_PATH))
+			if data and data.yesX and data.yesY then
+				towerYesPos = {x = data.yesX, y = data.yesY}
 			end
 		end
-		if found and foundX then
-			local clickX = foundX - 400
-			local clickY = foundY
+	end)
+
+	local function saveTowerYesPos(x, y)
+		pcall(function()
+			if not isfolder("GGHub") then makefolder("GGHub") end
+			writefile(TOWER_SYS_PATH, game:GetService("HttpService"):JSONEncode({yesX = x, yesY = y}))
+		end)
+	end
+
+	local towerYesLearning = false
+	local towerYesConn = nil
+
+	local function startLearningYesClick()
+		towerYesLearning = true
+		if towerYesConn then towerYesConn:Disconnect() end
+		towerYesConn = UIS.InputBegan:Connect(function(input, gpe)
+			if not towerYesLearning then
+				towerYesConn:Disconnect()
+				return
+			end
+			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+				local pos = input.Position
+				towerYesPos = {x = pos.X, y = pos.Y}
+				saveTowerYesPos(pos.X, pos.Y)
+				towerYesLearning = false
+				towerYesConn:Disconnect()
+				showNotification("Yes button position saved!")
+			end
+		end)
+	end
+
+	local function clickYesButton()
+		if towerYesPos then
+			local cx, cy = towerYesPos.x, towerYesPos.y
 			if mousemoveabs then
-				mousemoveabs(clickX, clickY)
+				mousemoveabs(cx, cy)
 				task.wait(0.08)
 				mouse1click()
 			end
-			VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, true, game, 0)
+			VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, true, game, 0)
 			task.wait(0.05)
-			VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, false, game, 0)
+			VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, false, game, 0)
 			return true
 		end
 		return false
@@ -990,7 +1003,7 @@ return function(ctx)
 						task.wait(0.3)
 						pcall(activateNearestInstant)
 
-						task.wait(4)
+						task.wait(3.25)
 
 						local current, max = depositsLabel.Text:match("(%d+)/(%d+)")
 						current = tonumber(current) or 0
@@ -1023,9 +1036,20 @@ return function(ctx)
 
 							task.wait(0.5)
 
-							for i = 1, 10 do
-								if clickYesButton() then break end
-								task.wait(0.3)
+							if not towerYesPos then
+								showNotification("Tower done! Click the YES button now to save its position.")
+								startLearningYesClick()
+								local elapsed = 0
+								while towerYesLearning and elapsed < 30 do
+									task.wait(0.1)
+									elapsed = elapsed + 0.1
+								end
+								towerYesLearning = false
+							else
+								for i = 1, 10 do
+									if clickYesButton() then break end
+									task.wait(0.3)
+								end
 							end
 
 							if isMobile then
