@@ -5,6 +5,8 @@ return function(ctx)
 	local scriptPage = ctx.scriptPage
 	local LocalPlayer = ctx.LocalPlayer
 	local RunService = ctx.RunService
+	local gui = ctx.gui
+	local Colors = ctx.Colors
 	local Workspace = game:GetService("Workspace")
 	local VirtualInputManager = game:GetService("VirtualInputManager")
 	local UIS = game:GetService("UserInputService")
@@ -214,12 +216,13 @@ return function(ctx)
 		end
 	end
 
+	local HttpService = game:GetService("HttpService")
 	local TOWER_SYS_PATH = "GGHub/TowerSys.json"
 	local towerYesPos = nil
 
 	pcall(function()
 		if isfile(TOWER_SYS_PATH) then
-			local data = game:GetService("HttpService"):JSONDecode(readfile(TOWER_SYS_PATH))
+			local data = HttpService:JSONDecode(readfile(TOWER_SYS_PATH))
 			if data and data.yesX and data.yesY then
 				towerYesPos = {x = data.yesX, y = data.yesY}
 			end
@@ -229,7 +232,7 @@ return function(ctx)
 	local function saveTowerYesPos(x, y)
 		pcall(function()
 			if not isfolder("GGHub") then makefolder("GGHub") end
-			writefile(TOWER_SYS_PATH, game:GetService("HttpService"):JSONEncode({yesX = x, yesY = y}))
+			writefile(TOWER_SYS_PATH, HttpService:JSONEncode({yesX = x, yesY = y}))
 		end)
 	end
 
@@ -239,7 +242,7 @@ return function(ctx)
 	local function startLearningYesClick()
 		towerYesLearning = true
 		if towerYesConn then towerYesConn:Disconnect() end
-		towerYesConn = UIS.InputBegan:Connect(function(input, gpe)
+		towerYesConn = UIS.InputBegan:Connect(function(input)
 			if not towerYesLearning then
 				towerYesConn:Disconnect()
 				return
@@ -253,6 +256,44 @@ return function(ctx)
 				showNotification("Yes button position saved!")
 			end
 		end)
+	end
+
+	local towerStopBtn = nil
+
+	local function showStopButton(onStop)
+		if towerStopBtn then towerStopBtn:Destroy() end
+		local btn = Instance.new("TextButton")
+		btn.Text = "STOP"
+		btn.Size = UDim2.new(0, 80, 0, 32)
+		btn.Position = UDim2.new(1, -95, 0, 12)
+		btn.BackgroundColor3 = Color3.fromRGB(185, 45, 45)
+		btn.TextColor3 = Color3.new(1, 1, 1)
+		btn.Font = Enum.Font.GothamBold
+		btn.TextSize = 13
+		btn.AutoButtonColor = false
+		btn.ZIndex = 200
+		btn.Parent = gui
+		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+		local stroke = Instance.new("UIStroke", btn)
+		stroke.Color = Color3.fromRGB(220, 60, 60)
+		stroke.Thickness = 1
+		btn.MouseEnter:Connect(function()
+			game:GetService("TweenService"):Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(210, 55, 55)}):Play()
+		end)
+		btn.MouseLeave:Connect(function()
+			game:GetService("TweenService"):Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(185, 45, 45)}):Play()
+		end)
+		btn.MouseButton1Click:Connect(function()
+			onStop()
+		end)
+		towerStopBtn = btn
+	end
+
+	local function hideStopButton()
+		if towerStopBtn then
+			towerStopBtn:Destroy()
+			towerStopBtn = nil
+		end
 	end
 
 	local function clickYesButton()
@@ -660,12 +701,20 @@ return function(ctx)
 			AutoDoomTowerEnabled = false
 			AutoDoomTowerRunning = false
 			workspace.Gravity = 196.2
+			hideStopButton()
 			showNotification("Auto Tower stopped.")
 			return
 		end
 
 		AutoDoomTowerEnabled = true
 		showNotification("Starting...")
+		showStopButton(function()
+			AutoDoomTowerEnabled = false
+			AutoDoomTowerRunning = false
+			workspace.Gravity = 196.2
+			hideStopButton()
+			showNotification("Auto Tower stopped.")
+		end)
 
 		task.spawn(function()
 			while AutoDoomTowerEnabled do
@@ -1003,7 +1052,7 @@ return function(ctx)
 						task.wait(0.3)
 						pcall(activateNearestInstant)
 
-						task.wait(3.25)
+						task.wait(4)
 
 						local current, max = depositsLabel.Text:match("(%d+)/(%d+)")
 						current = tonumber(current) or 0
@@ -1036,26 +1085,16 @@ return function(ctx)
 
 							task.wait(0.5)
 
-							if not towerYesPos then
-								showNotification("Tower done! Click the YES button now to save its position.")
-								startLearningYesClick()
-								local elapsed = 0
-								while towerYesLearning and elapsed < 30 do
-									task.wait(0.1)
-									elapsed = elapsed + 0.1
-								end
-								towerYesLearning = false
-							else
-								for i = 1, 10 do
-									if clickYesButton() then break end
-									task.wait(0.3)
-								end
+							for i = 1, 10 do
+								if clickYesButton() then break end
+								task.wait(0.3)
 							end
 
 							if isMobile then
 								switchToMobile()
 							end
 
+							hideStopButton()
 							showNotification("Tower complete! Cooldown: 5:15")
 							break
 						end
@@ -1076,6 +1115,7 @@ return function(ctx)
 				end
 
 				if not cycleComplete then
+					hideStopButton()
 					AutoDoomTowerEnabled = false
 					break
 				end
@@ -1090,8 +1130,8 @@ return function(ctx)
 	end)
 
 	local note = Instance.new("TextLabel")
-	note.Text = "Note: MAKE SURE THE TOWER IS AVAILABLE AND NOT ON COOLDOWN FOR THE FIRST TIME! To cancel the auto tower just click the button another tower and a Notification saying it stopped will pop up. Auto Tower restarts automatically every 5:00 after completion. Please activate the auto collect the rarity brainrot you want so it collects your reward. Infinity has highest priority while Divine and celestial are lower, i have fixed sum bugs since then but it should be fine now, also on mobile it changes from the thumbstick to keyboard, so go into roblox settings and change that when you don't want it to auto farm anymore"
-	note.Size = UDim2.new(1, -20, 0, 60)
+	note.Text = "Note: Use the auto collect functions to auto collect your rewards, If this is your first time using it, wait until It finishes since It needs your help to define a function, also in mobile It changes to keyboard, so change that on the Roblox settings when you din't want to farm anymore"
+	note.Size = UDim2.new(1, -20, 0, 20)
 	note.BackgroundTransparency = 1
 	note.TextColor3 = Color3.fromRGB(250, 250, 250)
 	note.Font = Enum.Font.Gotham
