@@ -6,7 +6,6 @@ return function(ctx)
 	local LocalPlayer = ctx.LocalPlayer
 	local RunService = ctx.RunService
 	local Workspace = game:GetService("Workspace")
-	local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	local VirtualInputManager = game:GetService("VirtualInputManager")
 	local UIS = game:GetService("UserInputService")
 
@@ -202,16 +201,17 @@ return function(ctx)
 			if obj:IsA("TextButton") and obj.Visible then
 				local txt = obj.Text or ""
 				if txt == "Yes" or txt:lower() == "yes" then
-					local absPos = obj.AbsolutePosition
-					local absSize = obj.AbsoluteSize
-					local cx = absPos.X + absSize.X / 2
-					local cy = absPos.Y + absSize.Y / 2
+					pcall(function() obj:Activate() end)
+					task.wait(0.05)
 					pcall(function()
+						local absPos = obj.AbsolutePosition
+						local absSize = obj.AbsoluteSize
+						local cx = absPos.X + absSize.X / 2
+						local cy = absPos.Y + absSize.Y / 2
 						VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, true, game, 0)
-						task.wait(0.08)
+						task.wait(0.05)
 						VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, false, game, 0)
 					end)
-					pcall(function() obj.MouseButton1Click:Fire() end)
 					return true
 				end
 			end
@@ -923,10 +923,6 @@ return function(ctx)
 							workspace.Gravity = 196.2
 							if noclipConn then noclipConn:Disconnect() end
 
-							pcall(function()
-								ReplicatedStorage.Shared.Remotes.Networking["RE/Tower/TowerConfirmClaim"]:FireServer()
-							end)
-
 							task.wait(3)
 
 							local root2 = getCharacterRoots()
@@ -957,7 +953,7 @@ return function(ctx)
 								switchToMobile()
 							end
 
-							showNotification("Tower complete! Cooldown: 5:15 before restart...")
+							showNotification("Tower complete! Cooldown: 5:15")
 							break
 						end
 
@@ -991,7 +987,7 @@ return function(ctx)
 	end)
 
 	local note = Instance.new("TextLabel")
-	note.Text = "Note: MAKE SURE THE TOWER IS AVAILABLE AND NOT ON COOLDOWN FOR THE FIRST TIME! Auto Tower restarts automatically every 5:15 after completion. Divine/Infinity/Celestial collectors pause the Tower temporarily. Infinity has highest priority, then Divine, then Celestial. On mobile, input mode is restored after Tower completion, use the Auto collect divines/celestial/infinity + Auto tower so it collects your rewards."
+	note.Text = "Note: MAKE SURE THE TOWER IS AVAILABLE AND NOT ON COOLDOWN. Auto Tower restarts automatically every 5:15 after completion. Divine/Infinity/Celestial collectors pause the Tower temporarily. Infinity has highest priority, then Divine, then Celestial. On mobile, input mode is restored after Tower completion."
 	note.Size = UDim2.new(1, -20, 0, 50)
 	note.BackgroundTransparency = 1
 	note.TextColor3 = Color3.fromRGB(220, 220, 220)
