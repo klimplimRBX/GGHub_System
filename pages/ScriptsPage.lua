@@ -6,6 +6,11 @@ return function(ctx)
 	local LocalPlayer = ctx.LocalPlayer
 	local RunService = ctx.RunService
 	local Workspace = game:GetService("Workspace")
+	local ReplicatedStorage = game:GetService("ReplicatedStorage")
+	local VirtualInputManager = game:GetService("VirtualInputManager")
+	local UIS = game:GetService("UserInputService")
+
+	local isMobile = UIS.TouchEnabled and not UIS.KeyboardEnabled
 
 	local function getEventCurrencySpeed()
 		local speed = 1000
@@ -19,12 +24,26 @@ return function(ctx)
 
 	local AutoFarmDoomCoinEnabled = false
 	local AutoPressDoomButtonEnabled = false
+	local AutoCollectInfinityEnabled = false
+	local AutoCollectDivineEnabled = false
+	local AutoCollectCelestialEnabled = false
+	local AutoDoomTowerEnabled = false
+	local AutoDoomTowerRunning = false
 	local lastCollectedDoomCoin = nil
+	local towerPausedForCollector = false
+
 	table.insert(getgenv().__GGHub_Cleanup, function()
-    AutoFarmDoomCoinEnabled = false
-    AutoPressDoomButtonEnabled = false
-    lastCollectedDoomCoin = nil
-    end)
+		AutoFarmDoomCoinEnabled = false
+		AutoPressDoomButtonEnabled = false
+		AutoCollectInfinityEnabled = false
+		AutoCollectDivineEnabled = false
+		AutoCollectCelestialEnabled = false
+		AutoDoomTowerEnabled = false
+		AutoDoomTowerRunning = false
+		lastCollectedDoomCoin = nil
+		towerPausedForCollector = false
+		workspace.Gravity = 196.2
+	end)
 
 	local moveLocked = false
 	local function acquireMoveLock()
@@ -124,6 +143,275 @@ return function(ctx)
 
 		if not ok then warn("[collectItem] Movement error: " .. tostring(err)) end
 	end
+
+	local function switchToPC()
+		pcall(function()
+			LocalPlayer.DevComputerMovementMode = Enum.DevComputerMovementMode.KeyboardMouse
+			LocalPlayer.DevComputerCameraMode = Enum.DevComputerCameraMode.Classic
+		end)
+	end
+
+	local function switchToMobile()
+		pcall(function()
+			LocalPlayer.DevComputerMovementMode = Enum.DevComputerMovementMode.DynamicThumbstick
+		end)
+	end
+
+	local function activateNearestInstant()
+		local root = getCharacterRoots()
+		if not root then return end
+		for _, obj in ipairs(Workspace:GetDescendants()) do
+			if obj:IsA("ProximityPrompt") and obj.Enabled then
+				obj.HoldDuration = 0
+				obj.MaxActivationDistance = 32
+			end
+		end
+		local nearestPrompt, shortestDist = nil, math.huge
+		for _, obj in ipairs(Workspace:GetDescendants()) do
+			if obj:IsA("ProximityPrompt") and obj.Enabled then
+				local parent = obj.Parent
+				if parent and parent:IsA("BasePart") then
+					local dist = (root.Position - parent.Position).Magnitude
+					if dist < shortestDist then
+						shortestDist = dist
+						nearestPrompt = obj
+					end
+				end
+			end
+		end
+		if nearestPrompt then
+			pcall(function()
+				switchToPC()
+				task.wait(0.1)
+				nearestPrompt.RequiresLineOfSight = false
+				nearestPrompt.HoldDuration = 0
+				nearestPrompt.MaxActivationDistance = 32
+				VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+				pcall(fireproximityprompt, nearestPrompt)
+				nearestPrompt:InputHoldBegin()
+				task.wait(0.3)
+				VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+				nearestPrompt:InputHoldEnd()
+				pcall(fireproximityprompt, nearestPrompt)
+			end)
+		end
+	end
+
+	local function clickYesButton()
+		for _, obj in ipairs(LocalPlayer.PlayerGui:GetDescendants()) do
+			if obj:IsA("TextButton") and obj.Visible then
+				local txt = obj.Text or ""
+				if txt == "Yes" or txt:lower() == "yes" then
+					local absPos = obj.AbsolutePosition
+					local absSize = obj.AbsoluteSize
+					local cx = absPos.X + absSize.X / 2
+					local cy = absPos.Y + absSize.Y / 2
+					pcall(function()
+						VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, true, game, 0)
+						task.wait(0.08)
+						VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, false, game, 0)
+					end)
+					pcall(function() obj.MouseButton1Click:Fire() end)
+					return true
+				end
+			end
+		end
+		return false
+	end
+
+	local COLLECTOR_UNDER_Y = -20
+	local COLLECTOR_FLAT_Y = -0.5
+	local BASE_POS = Vector3.new(125, 3.3, 0)
+
+	local function genericFlyTo(targetPos, speed)
+		speed = speed or 1200
+		local root = getCharacterRoots()
+		if not root then return false end
+
+		while (root.Position - targetPos).Magnitude > 1.5 do
+			local dt = RunService.Heartbeat:Wait()
+			root = getCharacterRoots()
+			if not root then return false end
+			local remaining = (targetPos - root.Position)
+			local step = math.min(speed * dt, remaining.Magnitude)
+			root.CFrame = root.CFrame + remaining.Unit * step
+			root.AssemblyLinearVelocity = Vector3.zero
+		end
+		root = getCharacterRoots()
+		if root then
+			root.CFrame = CFrame.new(targetPos)
+			root.AssemblyLinearVelocity = Vector3.zero
+			root.AssemblyAngularVelocity = Vector3.zero
+		end
+		return true
+	end
+
+	local function goToBase(speed)
+		local root = getCharacterRoots()
+		if not root then return end
+		pcall(function()
+			genericFlyTo(Vector3.new(root.Position.X, COLLECTOR_UNDER_Y, root.Position.Z), speed)
+			task.wait(0.01)
+			genericFlyTo(Vector3.new(BASE_POS.X, COLLECTOR_UNDER_Y, BASE_POS.Z), speed)
+			task.wait(0.01)
+			genericFlyTo(BASE_POS, speed)
+		end)
+	end
+
+	local function getTargets(brainrotTier, luckyNames)
+		local targets = {}
+
+		local activeBrainrots = Workspace:FindFirstChild("ActiveBrainrots")
+		if activeBrainrots then
+			local tierFolder = activeBrainrots:FindFirstChild(brainrotTier)
+			if tierFolder then
+				for _, child in ipairs(tierFolder:GetChildren()) do
+					if child.Name == "RenderedBrainrot" and child.Parent then
+						local pos = getPosition(child)
+						if pos then
+							table.insert(targets, {obj = child, pos = pos})
+						end
+					end
+				end
+			end
+		end
+
+		local activeLuckyBlocks = Workspace:FindFirstChild("ActiveLuckyBlocks")
+		if activeLuckyBlocks then
+			for _, name in ipairs(luckyNames) do
+				local folder = activeLuckyBlocks:FindFirstChild(name)
+				if folder then
+					for _, child in ipairs(folder:GetChildren()) do
+						if child.Parent then
+							local pos = getPosition(child)
+							if pos then
+								table.insert(targets, {obj = child, pos = pos})
+							end
+						end
+					end
+				end
+			end
+		end
+
+		return targets
+	end
+
+	local INFINITY_LUCKY = {
+		"NaturalSpawnLuckyBlock_Infinity",
+		"EventSpawnLuckyBlock_Infinity",
+		"AdminSpawnLuckyBlock_Infinity",
+	}
+	local DIVINE_LUCKY = {
+		"NaturalSpawnLuckyBlock_Divine",
+		"EventSpawnLuckyBlock_Divine",
+		"AdminSpawnLuckyBlock_Divine",
+	}
+	local CELESTIAL_LUCKY = {
+		"NaturalSpawnLuckyBlock_Celestial",
+		"EventSpawnLuckyBlock_Celestial",
+		"AdminSpawnLuckyBlock_Celestial",
+	}
+
+	local function getInfinityTargets() return getTargets("Infinity", INFINITY_LUCKY) end
+	local function getDivineTargets() return getTargets("Divine", DIVINE_LUCKY) end
+	local function getCelestialTargets() return getTargets("Celestial", CELESTIAL_LUCKY) end
+
+	local function collectAndReturn(target, pos, speed)
+		local root = getCharacterRoots()
+		if not root then return false end
+
+		local collected = false
+
+		pcall(function()
+			genericFlyTo(Vector3.new(root.Position.X, COLLECTOR_UNDER_Y, root.Position.Z), speed)
+			task.wait(0.01)
+			genericFlyTo(Vector3.new(pos.X, COLLECTOR_UNDER_Y, pos.Z), speed)
+			task.wait(0.01)
+			genericFlyTo(Vector3.new(pos.X, COLLECTOR_FLAT_Y, pos.Z), speed)
+		end)
+
+		local beforeParent = target.Parent
+		for i = 1, 3 do
+			pcall(activateNearestInstant)
+			task.wait(0.1)
+		end
+
+		if not target.Parent or target.Parent ~= beforeParent then
+			collected = true
+		end
+
+		goToBase(speed)
+		return collected
+	end
+
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			if AutoCollectInfinityEnabled then
+				local targets = getInfinityTargets()
+				if #targets > 0 then
+					towerPausedForCollector = true
+					acquireMoveLock()
+					workspace.Gravity = 5
+					local speed = getEventCurrencySpeed()
+					local t = targets[math.random(1, #targets)]
+					if t.obj.Parent then
+						collectAndReturn(t.obj, t.pos, speed)
+					end
+					workspace.Gravity = 196.2
+					releaseMoveLock()
+					towerPausedForCollector = false
+				end
+			end
+		end
+	end)
+
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			if AutoCollectDivineEnabled and not (AutoCollectInfinityEnabled and #getInfinityTargets() > 0) then
+				local targets = getDivineTargets()
+				if #targets > 0 then
+					towerPausedForCollector = true
+					acquireMoveLock()
+					workspace.Gravity = 5
+					local speed = getEventCurrencySpeed()
+					local t = targets[math.random(1, #targets)]
+					if t.obj.Parent then
+						collectAndReturn(t.obj, t.pos, speed)
+					end
+					workspace.Gravity = 196.2
+					releaseMoveLock()
+					towerPausedForCollector = false
+				end
+			end
+		end
+	end)
+
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			if AutoCollectCelestialEnabled
+				and not (AutoCollectInfinityEnabled and #getInfinityTargets() > 0)
+				and not (AutoCollectDivineEnabled and #getDivineTargets() > 0)
+			then
+				local targets = getCelestialTargets()
+				if #targets > 0 then
+					towerPausedForCollector = true
+					acquireMoveLock()
+					workspace.Gravity = 5
+					local speed = getEventCurrencySpeed()
+					local t = targets[math.random(1, #targets)]
+					if t.obj.Parent then
+						collectAndReturn(t.obj, t.pos, speed)
+					end
+					workspace.Gravity = 196.2
+					releaseMoveLock()
+					towerPausedForCollector = false
+				end
+			end
+		end
+	end)
 
 	task.spawn(function()
 		while true do
@@ -250,278 +538,55 @@ return function(ctx)
 		end
 	end)
 
-	local AutoDoomTowerRunning = false
-	table.insert(getgenv().__GGHub_Cleanup, function()
-		AutoDoomTowerRunning = false
-		workspace.Gravity = 196.2
+	createToggle(scriptPage, "Auto Collect Infinity", "ye that will probably never happen but ok", function(state)
+		AutoCollectInfinityEnabled = state
+		if state then
+			showNotification("Auto Collect Infinity Enabled")
+		else
+			showNotification("Auto Collect Infinity Disabled")
+		end
+	end)
+
+	createToggle(scriptPage, "Auto Collect Divine", "Auto goes to any divine Brainrot/Lucky Block and collects it", function(state)
+		AutoCollectDivineEnabled = state
+		if state then
+			showNotification("Auto Collect Divine Enabled")
+		else
+			showNotification("Auto Collect Divine Disabled")
+		end
+	end)
+
+	createToggle(scriptPage, "Auto Collect Celestial", "Auto goes to any celestial and grabs it and returns to your base", function(state)
+		AutoCollectCelestialEnabled = state
+		if state then
+			showNotification("Auto Collect Celestial Enabled")
+		else
+			showNotification("Auto Collect Celestial Disabled")
+		end
 	end)
 
 	createButton(scriptPage, "Auto Complete Tower", "Completes the Tower Automatically for you", function()
-		if AutoDoomTowerRunning then
+		if AutoDoomTowerEnabled or AutoDoomTowerRunning then
+			AutoDoomTowerEnabled = false
 			AutoDoomTowerRunning = false
-			showNotification("Auto Tower stopped.")
 			workspace.Gravity = 196.2
+			showNotification("Auto Tower stopped.")
 			return
 		end
-		AutoDoomTowerRunning = true
+
+		AutoDoomTowerEnabled = true
 		showNotification("Starting...")
-		workspace.Gravity = 5
+
 		task.spawn(function()
+			while AutoDoomTowerEnabled do
+				AutoDoomTowerRunning = true
+				workspace.Gravity = 5
 
-			local TOWER_POS = Vector3.new(4325, 6.3, -2.5)
-			local TOWER_UNDER_Y = -20
-			local BRAINROT_UNDER_Y = -20
-			local BRAINROT_FLAT_Y = -0.5
-
-			local function stopTower(msg)
-				AutoDoomTowerRunning = false
-				workspace.Gravity = 196.2
-				if msg then showNotification(msg) end
-			end
-
-			local flySpeed = 1200 --fallback
-			pcall(function()
-				local val = LocalPlayer.PlayerGui.BottomLeft.JumpAndSpeed.Container.EventCurrency.Value
-				local speed = tonumber(val.Text)
-				if speed then
-					flySpeed = (speed * 2.5) - 50
-				end
-			end)
-
-			local noclipConn
-			noclipConn = RunService.Stepped:Connect(function()
-				if not AutoDoomTowerRunning then
-					noclipConn:Disconnect()
-					return
-				end
-				local char = LocalPlayer.Character
-				if char then
-					for _, part in ipairs(char:GetDescendants()) do
-						if part:IsA("BasePart") then
-							part.CanCollide = false
-						end
-					end
-				end
-			end)
-			table.insert(getgenv().__GGHub_Cleanup, function()
-				if noclipConn then noclipConn:Disconnect() end
-			end)
-			local function towerFlyTo(targetPos, speed)
-				speed = speed or 1200 -- fallback 2
-				local root, humanoid = getCharacterRoots()
-				if not isCharacterAlive(root, humanoid) then
-					LocalPlayer.CharacterAdded:Wait()
-					task.wait(1.5)
-					root, humanoid = getCharacterRoots()
-					if not isCharacterAlive(root, humanoid) then return false end
-				end
-				while (root.Position - targetPos).Magnitude > 1.5 do
-					if not AutoDoomTowerRunning then return false end
-					if not isCharacterAlive(root, humanoid) then
-						LocalPlayer.CharacterAdded:Wait()
-						task.wait(1.5)
-						root, humanoid = getCharacterRoots()
-						if not isCharacterAlive(root, humanoid) then return false end
-					end
-					local dt = RunService.Heartbeat:Wait()
-					local remaining = (targetPos - root.Position)
-					local step = math.min(speed * dt, remaining.Magnitude)
-					root.CFrame = root.CFrame + remaining.Unit * step
-					root.AssemblyLinearVelocity = Vector3.zero
-				end
-				if isCharacterAlive(root, humanoid) then
-					root.CFrame = CFrame.new(targetPos)
-					root.AssemblyLinearVelocity = Vector3.zero
-					root.AssemblyAngularVelocity = Vector3.zero
-				end
-				return true
-			end
-
-			local function underMapFlyTo(targetPos, underY, speed)
-				local root = getCharacterRoots()
-				if not root then return false end
-				local ok = true
-				ok = ok and towerFlyTo(Vector3.new(root.Position.X, underY, root.Position.Z), speed)
-				task.wait(0.01)
-				ok = ok and towerFlyTo(Vector3.new(targetPos.X, underY, targetPos.Z), speed)
-				task.wait(0.01)
-				ok = ok and towerFlyTo(targetPos, speed)
-				return ok
-			end
-
-			local VirtualUser = game:GetService("VirtualUser")
-			local UIS = game:GetService("UserInputService")
-
-			local function switchToPC()
-				pcall(function()
-					LocalPlayer.DevComputerMovementMode = Enum.DevComputerMovementMode.KeyboardMouse
-					LocalPlayer.DevComputerCameraMode = Enum.DevComputerCameraMode.Classic
-				end)
-			end
-
-			local function pressE()
-				VirtualUser:Button1Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-				VirtualUser:Button1Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-			end
-
-			local function holdE(duration)
-				VirtualUser:CaptureController()
-				VirtualUser:ClickButton2(Vector2.new(0,0))
-				local uis = game:GetService("UserInputService")
-				local inputObject = InputObject.new(Enum.UserInputType.Keyboard, Enum.UserInputState.Begin, Enum.KeyCode.E)
-				pcall(function() uis:InputBegan(inputObject, false) end)
-				pcall(function()
-					game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.E, false, game)
-					task.wait(duration or 2.5)
-					game:GetService("VirtualInputManager"):SendKeyEvent(false, Enum.KeyCode.E, false, game)
-				end)
-			end
-
-			local function activateNearestInstant()
-				local root = getCharacterRoots()
-				if not root then return end
-				for _, obj in ipairs(workspace:GetDescendants()) do
-					if obj:IsA("ProximityPrompt") and obj.Enabled then
-						obj.HoldDuration = 0
-						obj.MaxActivationDistance = 32
-					end
-				end
-				local nearestPrompt, shortestDist = nil, math.huge
-				for _, obj in ipairs(workspace:GetDescendants()) do
-					if obj:IsA("ProximityPrompt") and obj.Enabled then
-						local parent = obj.Parent
-						if parent and parent:IsA("BasePart") then
-							local dist = (root.Position - parent.Position).Magnitude
-							if dist < shortestDist then
-								shortestDist = dist
-								nearestPrompt = obj
-							end
-						end
-					end
-				end
-				if nearestPrompt then
-					switchToPC()
-					task.wait(0.1)
-					nearestPrompt.RequiresLineOfSight = false
-					nearestPrompt.HoldDuration = 0
-					nearestPrompt.MaxActivationDistance = 32
-					game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.E, false, game)
-					pcall(fireproximityprompt, nearestPrompt)
-					nearestPrompt:InputHoldBegin()
-					task.wait(0.3)
-					game:GetService("VirtualInputManager"):SendKeyEvent(false, Enum.KeyCode.E, false, game)
-					nearestPrompt:InputHoldEnd()
-					pcall(fireproximityprompt, nearestPrompt)
-				end
-			end
-
-			do
-				local root = getCharacterRoots()
-				if not root then stopTower("No character found!") return end
-
-				if (root.Position - TOWER_POS).Magnitude >= 3 then
-					acquireMoveLock()
-					pcall(function()
-						towerFlyTo(Vector3.new(root.Position.X, TOWER_UNDER_Y, root.Position.Z), flySpeed)
-						task.wait(0.01)
-						towerFlyTo(Vector3.new(TOWER_POS.X, TOWER_UNDER_Y, TOWER_POS.Z), flySpeed)
-						task.wait(0.01)
-						towerFlyTo(TOWER_POS, flySpeed)
-					end)
-					releaseMoveLock()
-				end
-
-				root = getCharacterRoots()
-				if not root or (root.Position - TOWER_POS).Magnitude >= 3 then
-					stopTower("Failed to reach tower position!")
-					return
-				end
-			end
-
-			local towerPrompt
-			pcall(function()
-				towerPrompt = workspace.GameObjects.PlaceSpecific.root.Tower.Main.Prompt.ProximityPrompt
-			end)
-			if not towerPrompt then
-				stopTower("Tower prompt not found!")
-				return
-			end
-
-			local function holdTowerPrompt()
-				local root = getCharacterRoots()
-				if not root then return false end
-				switchToPC()
-				root.CFrame = CFrame.new(TOWER_POS)
-				root.AssemblyLinearVelocity = Vector3.zero
-				task.wait(0.2)
-				root = getCharacterRoots()
-				if root then root.Anchored = true end
-				local activated = false
-				pcall(function()
-					switchToPC()
-					task.wait(0.1)
-					towerPrompt.RequiresLineOfSight = false
-					towerPrompt.MaxActivationDistance = 32
-					pcall(fireproximityprompt, towerPrompt)
-					task.wait(0.1)
-					towerPrompt:InputHoldBegin()
-					game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.E, false, game)
-					task.wait(2.5)
-					game:GetService("VirtualInputManager"):SendKeyEvent(false, Enum.KeyCode.E, false, game)
-					towerPrompt:InputHoldEnd()
-					pcall(fireproximityprompt, towerPrompt)
-					activated = true
-				end)
-				if root then root.Anchored = false end
-				return activated
-			end
-
-			local activated = holdTowerPrompt()
-			if not activated then
-				stopTower("Failed to activate tower prompt!")
-				return
-			end
-
-			task.wait(4)
-
-			local trialBar
-			pcall(function()
-				trialBar = LocalPlayer.PlayerGui:WaitForChild("TowerTrialHUD", 15):WaitForChild("TrialBar", 15)
-			end)
-			if not trialBar then
-				stopTower("Something went wrong")
-				return
-			end
-
-			local requirementLabel = trialBar:FindFirstChild("Requirement")
-			local depositsLabel = trialBar:FindFirstChild("Deposits")
-			if not requirementLabel or not depositsLabel then
-				stopTower("Something was not found")
-				return
-			end
-
-			local keywords = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Secret"}
-
-			local foundKeyword
-			local elapsed = 0
-			while not foundKeyword and elapsed < 3 do
-				for _, kw in ipairs(keywords) do
-					if requirementLabel.Text:find(kw) then
-						foundKeyword = kw
-						break
-					end
-				end
-				if not foundKeyword then
-					task.wait(0.5)
-					elapsed = elapsed + 0.5
-				end
-			end
-			if not foundKeyword then
-				stopTower("Could not identify Tower requirement")
-				return
-			end
-
-			while AutoDoomTowerRunning do
+				local TOWER_POS = Vector3.new(4325, 6.3, -2.5)
+				local TOWER_UNDER_Y = -20
+				local BRAINROT_UNDER_Y = -20
+				local BRAINROT_FLAT_Y = -0.5
+				local flySpeed = 1200
 
 				pcall(function()
 					local val = LocalPlayer.PlayerGui.BottomLeft.JumpAndSpeed.Container.EventCurrency.Value
@@ -529,124 +594,404 @@ return function(ctx)
 					if speed then flySpeed = (speed * 2.5) - 50 end
 				end)
 
-				local brainrotFolder = workspace:FindFirstChild("ActiveBrainrots")
-				if not brainrotFolder then
-					stopTower("ActiveBrainrots not found! - Wait how is there not any Brainrot spawned? Are you the admin?")
-					return
-				end
-
-				local keywordFolder = brainrotFolder:FindFirstChild(foundKeyword)
-				if not keywordFolder then
-					showNotification(foundKeyword .. " folder not found!")
-					stopTower()
-					return
-				end
-
-				local renderedList = {}
-				for _, child in ipairs(keywordFolder:GetChildren()) do
-					if child.Name == "RenderedBrainrot" then
-						table.insert(renderedList, child)
+				local noclipConn
+				noclipConn = RunService.Stepped:Connect(function()
+					if not AutoDoomTowerRunning then
+						noclipConn:Disconnect()
+						return
 					end
-				end
-				if #renderedList == 0 then
-					showNotification("No RenderedBrainrot found for " .. foundKeyword .. "!")
-					task.wait(1)
-					continue
-				end
-
-				local collected = false
-				local attempts = 0
-				while not collected and AutoDoomTowerRunning and attempts < #renderedList do
-					attempts = attempts + 1
-					local idx = math.random(1, #renderedList)
-					local target = renderedList[idx]
-					if not target or not target.Parent then
-						table.remove(renderedList, idx)
-						continue
+					local char = LocalPlayer.Character
+					if char then
+						for _, part in ipairs(char:GetDescendants()) do
+							if part:IsA("BasePart") then
+								part.CanCollide = false
+							end
+						end
 					end
-					local pos = getPosition(target)
-					if not pos then continue end
-
-					acquireMoveLock()
-					pcall(function()
-						local root = getCharacterRoots()
-						if not root then return end
-						towerFlyTo(Vector3.new(root.Position.X, BRAINROT_UNDER_Y, root.Position.Z), flySpeed)
-						task.wait(0.01)
-						towerFlyTo(Vector3.new(pos.X, BRAINROT_UNDER_Y, pos.Z), flySpeed)
-						task.wait(0.01)
-						towerFlyTo(Vector3.new(pos.X, BRAINROT_FLAT_Y, pos.Z), flySpeed)
-					end)
-					releaseMoveLock()
-
- 
-					if not target.Parent then continue end
-
-					task.wait(0.05)
-
-					local beforeParent = target.Parent
-					pcall(activateNearestInstant)
-					task.wait(0.05)
-
-					if not target.Parent or target.Parent ~= beforeParent then
-						collected = true
-					end
-				end
-
-				if not collected then
-					task.wait(0.5)
-					continue
-				end
-
-				pcall(function()
-					local root = getCharacterRoots()
-					if not root then return end
-					towerFlyTo(Vector3.new(root.Position.X, BRAINROT_UNDER_Y, root.Position.Z), flySpeed)
-					task.wait(0.01)
-					towerFlyTo(Vector3.new(4325, BRAINROT_UNDER_Y, -2.5), flySpeed)
-					task.wait(0.01)
-					towerFlyTo(TOWER_POS, flySpeed)
 				end)
-				releaseMoveLock()
+				table.insert(getgenv().__GGHub_Cleanup, function()
+					if noclipConn then noclipConn:Disconnect() end
+				end)
 
-				task.wait(0.5)
-				local root = getCharacterRoots()
-				if root then
-					root.CFrame = CFrame.new(TOWER_POS)
-					root.AssemblyLinearVelocity = Vector3.zero
-					root.AssemblyAngularVelocity = Vector3.zero
+				local function towerFlyTo(targetPos, speed)
+					speed = speed or 1200
+					local root, humanoid = getCharacterRoots()
+					if not isCharacterAlive(root, humanoid) then
+						LocalPlayer.CharacterAdded:Wait()
+						task.wait(1.5)
+						root, humanoid = getCharacterRoots()
+						if not isCharacterAlive(root, humanoid) then return false end
+					end
+					while (root.Position - targetPos).Magnitude > 1.5 do
+						if not AutoDoomTowerRunning or towerPausedForCollector then return false end
+						if not isCharacterAlive(root, humanoid) then
+							LocalPlayer.CharacterAdded:Wait()
+							task.wait(1.5)
+							root, humanoid = getCharacterRoots()
+							if not isCharacterAlive(root, humanoid) then return false end
+						end
+						local dt = RunService.Heartbeat:Wait()
+						local remaining = (targetPos - root.Position)
+						local step = math.min(speed * dt, remaining.Magnitude)
+						root.CFrame = root.CFrame + remaining.Unit * step
+						root.AssemblyLinearVelocity = Vector3.zero
+					end
+					if isCharacterAlive(root, humanoid) then
+						root.CFrame = CFrame.new(targetPos)
+						root.AssemblyLinearVelocity = Vector3.zero
+						root.AssemblyAngularVelocity = Vector3.zero
+					end
+					return true
 				end
-				task.wait(0.3)
-				pcall(activateNearestInstant)
 
-				task.wait(4)
+				local cycleComplete = false
+				local cycleError = false
 
-				local current, max = depositsLabel.Text:match("(%d+)/(%d+)")
-				current = tonumber(current) or 0
-				max = tonumber(max) or 10
-
-				if current >= max then
-					stopTower("Complete!")
-					return
+				local function stopCycle(msg)
+					AutoDoomTowerRunning = false
+					workspace.Gravity = 196.2
+					if noclipConn then noclipConn:Disconnect() end
+					if msg then showNotification(msg) end
 				end
 
-				local newKeyword
-				for _, kw in ipairs(keywords) do
-					if requirementLabel.Text:find(kw) then
-						newKeyword = kw
-						break
+				local function handlePauseForCollector()
+					if not towerPausedForCollector then return true end
+					releaseMoveLock()
+					showNotification("Tower paused for priority collection...")
+					while towerPausedForCollector and AutoDoomTowerEnabled do
+						task.wait(0.5)
+					end
+					if not AutoDoomTowerEnabled then return false end
+					showNotification("Tower resumed!")
+					acquireMoveLock()
+					local root = getCharacterRoots()
+					if root then
+						pcall(function()
+							towerFlyTo(Vector3.new(root.Position.X, TOWER_UNDER_Y, root.Position.Z), flySpeed)
+							task.wait(0.01)
+							towerFlyTo(TOWER_POS, flySpeed)
+						end)
+					end
+					releaseMoveLock()
+					return true
+				end
+
+				do
+					local root = getCharacterRoots()
+					if not root then
+						stopCycle("No character found!")
+						cycleError = true
+					else
+						if (root.Position - TOWER_POS).Magnitude >= 3 then
+							acquireMoveLock()
+							local reached = false
+							pcall(function()
+								reached = towerFlyTo(Vector3.new(root.Position.X, TOWER_UNDER_Y, root.Position.Z), flySpeed)
+								task.wait(0.01)
+								if reached then reached = towerFlyTo(Vector3.new(TOWER_POS.X, TOWER_UNDER_Y, TOWER_POS.Z), flySpeed) end
+								task.wait(0.01)
+								if reached then reached = towerFlyTo(TOWER_POS, flySpeed) end
+							end)
+							releaseMoveLock()
+
+							if not reached or not AutoDoomTowerRunning then
+								stopCycle()
+								cycleError = true
+							else
+								root = getCharacterRoots()
+								if not root or (root.Position - TOWER_POS).Magnitude >= 3 then
+									stopCycle("Failed to reach tower position!")
+									cycleError = true
+								end
+							end
+						end
 					end
 				end
-				if newKeyword and newKeyword ~= foundKeyword then
-					foundKeyword = newKeyword
+
+				local towerPrompt
+				if not cycleError then
+					pcall(function()
+						towerPrompt = workspace.GameObjects.PlaceSpecific.root.Tower.Main.Prompt.ProximityPrompt
+					end)
+					if not towerPrompt then
+						stopCycle("Tower prompt not found!")
+						cycleError = true
+					end
 				end
 
-				task.wait(0.1)
-			end 
-		end) 
+				if not cycleError then
+					local root = getCharacterRoots()
+					if not root then
+						stopCycle("No character found!")
+						cycleError = true
+					else
+						switchToPC()
+						root.CFrame = CFrame.new(TOWER_POS)
+						root.AssemblyLinearVelocity = Vector3.zero
+						task.wait(0.2)
+						root = getCharacterRoots()
+						if root then root.Anchored = true end
+						local activated = false
+						pcall(function()
+							switchToPC()
+							task.wait(0.1)
+							towerPrompt.RequiresLineOfSight = false
+							towerPrompt.MaxActivationDistance = 32
+							pcall(fireproximityprompt, towerPrompt)
+							task.wait(0.1)
+							towerPrompt:InputHoldBegin()
+							VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+							task.wait(2.5)
+							VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+							towerPrompt:InputHoldEnd()
+							pcall(fireproximityprompt, towerPrompt)
+							activated = true
+						end)
+						root = getCharacterRoots()
+						if root then root.Anchored = false end
+						if not activated then
+							stopCycle("Failed to activate tower prompt!")
+							cycleError = true
+						end
+					end
+				end
+
+				local trialBar, requirementLabel, depositsLabel, foundKeyword
+
+				if not cycleError then
+					task.wait(4)
+					pcall(function()
+						trialBar = LocalPlayer.PlayerGui:WaitForChild("TowerTrialHUD", 15):WaitForChild("TrialBar", 15)
+					end)
+					if not trialBar then
+						stopCycle("Something went wrong")
+						cycleError = true
+					else
+						requirementLabel = trialBar:FindFirstChild("Requirement")
+						depositsLabel = trialBar:FindFirstChild("Deposits")
+						if not requirementLabel or not depositsLabel then
+							stopCycle("Something was not found")
+							cycleError = true
+						end
+					end
+				end
+
+				if not cycleError then
+					local keywords = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Secret"}
+					local elapsed = 0
+					while not foundKeyword and elapsed < 3 do
+						for _, kw in ipairs(keywords) do
+							if requirementLabel.Text:find(kw) then
+								foundKeyword = kw
+								break
+							end
+						end
+						if not foundKeyword then
+							task.wait(0.5)
+							elapsed = elapsed + 0.5
+						end
+					end
+					if not foundKeyword then
+						stopCycle("Could not identify Tower requirement")
+						cycleError = true
+					end
+				end
+
+				if not cycleError then
+					local keywords = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Secret"}
+
+					while AutoDoomTowerRunning and AutoDoomTowerEnabled do
+						pcall(function()
+							local val = LocalPlayer.PlayerGui.BottomLeft.JumpAndSpeed.Container.EventCurrency.Value
+							local speed = tonumber(val.Text)
+							if speed then flySpeed = (speed * 2.5) - 50 end
+						end)
+
+						local pauseOk = handlePauseForCollector()
+						if not pauseOk then break end
+
+						local brainrotFolder = workspace:FindFirstChild("ActiveBrainrots")
+						if not brainrotFolder then
+							stopCycle("ActiveBrainrots not found!")
+							break
+						end
+
+						local keywordFolder = brainrotFolder:FindFirstChild(foundKeyword)
+						if not keywordFolder then
+							showNotification(foundKeyword .. " folder not found!")
+							stopCycle()
+							break
+						end
+
+						local renderedList = {}
+						for _, child in ipairs(keywordFolder:GetChildren()) do
+							if child.Name == "RenderedBrainrot" then
+								table.insert(renderedList, child)
+							end
+						end
+						if #renderedList == 0 then
+							showNotification("No RenderedBrainrot found for " .. foundKeyword .. "!")
+							task.wait(1)
+							continue
+						end
+
+						local collected = false
+						local attempts = 0
+
+						while not collected and AutoDoomTowerRunning and attempts < #renderedList do
+							attempts = attempts + 1
+							if towerPausedForCollector then break end
+
+							local idx = math.random(1, #renderedList)
+							local target = renderedList[idx]
+							if not target or not target.Parent then
+								table.remove(renderedList, idx)
+								continue
+							end
+							local pos = getPosition(target)
+							if not pos then continue end
+
+							acquireMoveLock()
+							local flyOk = false
+							pcall(function()
+								local root = getCharacterRoots()
+								if not root then return end
+								flyOk = towerFlyTo(Vector3.new(root.Position.X, BRAINROT_UNDER_Y, root.Position.Z), flySpeed)
+								task.wait(0.01)
+								if flyOk then flyOk = towerFlyTo(Vector3.new(pos.X, BRAINROT_UNDER_Y, pos.Z), flySpeed) end
+								task.wait(0.01)
+								if flyOk then flyOk = towerFlyTo(Vector3.new(pos.X, BRAINROT_FLAT_Y, pos.Z), flySpeed) end
+							end)
+							releaseMoveLock()
+
+							if not flyOk or towerPausedForCollector then break end
+							if not target.Parent then continue end
+
+							task.wait(0.05)
+
+							local beforeParent = target.Parent
+							pcall(activateNearestInstant)
+							task.wait(0.05)
+
+							if not target.Parent or target.Parent ~= beforeParent then
+								collected = true
+							else
+								pcall(activateNearestInstant)
+								task.wait(0.05)
+								if not target.Parent or target.Parent ~= beforeParent then
+									collected = true
+								end
+							end
+						end
+
+						if not collected or towerPausedForCollector then
+							task.wait(0.5)
+							continue
+						end
+
+						acquireMoveLock()
+						pcall(function()
+							local root = getCharacterRoots()
+							if not root then return end
+							towerFlyTo(Vector3.new(root.Position.X, BRAINROT_UNDER_Y, root.Position.Z), flySpeed)
+							task.wait(0.01)
+							towerFlyTo(Vector3.new(4325, BRAINROT_UNDER_Y, -2.5), flySpeed)
+							task.wait(0.01)
+							towerFlyTo(TOWER_POS, flySpeed)
+						end)
+						releaseMoveLock()
+
+						task.wait(0.5)
+						local root = getCharacterRoots()
+						if root then
+							root.CFrame = CFrame.new(TOWER_POS)
+							root.AssemblyLinearVelocity = Vector3.zero
+							root.AssemblyAngularVelocity = Vector3.zero
+						end
+						task.wait(0.3)
+						pcall(activateNearestInstant)
+
+						task.wait(4)
+
+						local current, max = depositsLabel.Text:match("(%d+)/(%d+)")
+						current = tonumber(current) or 0
+						max = tonumber(max) or 10
+
+						if current >= max then
+							cycleComplete = true
+							AutoDoomTowerRunning = false
+							workspace.Gravity = 196.2
+							if noclipConn then noclipConn:Disconnect() end
+
+							pcall(function()
+								ReplicatedStorage.Shared.Remotes.Networking["RE/Tower/TowerConfirmClaim"]:FireServer()
+							end)
+
+							task.wait(3)
+
+							local root2 = getCharacterRoots()
+							if root2 then
+								root2.CFrame = CFrame.new(TOWER_POS)
+								root2.AssemblyLinearVelocity = Vector3.zero
+							end
+
+							pcall(function()
+								towerPrompt.RequiresLineOfSight = false
+								towerPrompt.MaxActivationDistance = 32
+								pcall(fireproximityprompt, towerPrompt)
+								task.wait(0.3)
+								towerPrompt:InputHoldBegin()
+								task.wait(0.5)
+								towerPrompt:InputHoldEnd()
+								pcall(fireproximityprompt, towerPrompt)
+							end)
+
+							task.wait(0.5)
+
+							for i = 1, 10 do
+								if clickYesButton() then break end
+								task.wait(0.3)
+							end
+
+							if isMobile then
+								switchToMobile()
+							end
+
+							showNotification("Tower complete! Cooldown: 5:15 before restart...")
+							break
+						end
+
+						local newKeyword
+						for _, kw in ipairs(keywords) do
+							if requirementLabel.Text:find(kw) then
+								newKeyword = kw
+								break
+							end
+						end
+						if newKeyword and newKeyword ~= foundKeyword then
+							foundKeyword = newKeyword
+						end
+
+						task.wait(0.1)
+					end
+				end
+
+				if not cycleComplete then
+					AutoDoomTowerEnabled = false
+					break
+				end
+
+				task.wait(315)
+
+				if AutoDoomTowerEnabled then
+					showNotification("Restarting Auto Tower...")
+				end
+			end
+		end)
 	end)
+
 	local note = Instance.new("TextLabel")
-	note.Text = "Note: MAKE SURE THE TOWER IS AVAIABLE AND NOT ON COOLDOWN - If you started the Auto Doom Tower and you want to stop It, just click the button again, also, It does not auto collect the reward you win, well also make that, but we wanted to update It more quickly so we launched It like this, and if you're on mobile, it changes from the dynamic thumbstick to the Keyboard, to fix, open the roblox menu and close, simple, anyways have a great time using this :)"
+	note.Text = "Note: MAKE SURE THE TOWER IS AVAILABLE AND NOT ON COOLDOWN FOR THE FIRST TIME! Auto Tower restarts automatically every 5:15 after completion. Divine/Infinity/Celestial collectors pause the Tower temporarily. Infinity has highest priority, then Divine, then Celestial. On mobile, input mode is restored after Tower completion, use the Auto collect divines/celestial/infinity + Auto tower so it collects your rewards."
 	note.Size = UDim2.new(1, -20, 0, 50)
 	note.BackgroundTransparency = 1
 	note.TextColor3 = Color3.fromRGB(220, 220, 220)
