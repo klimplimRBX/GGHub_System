@@ -258,22 +258,26 @@ return function(ctx)
 		end)
 	end
 
-	local towerStopScreenGui = nil
 	local towerStopBtn = nil
 
+	local towerStopSG = nil
+
 	local function showStopButton(onStop)
-		if towerStopScreenGui then towerStopScreenGui:Destroy() end
+		if towerStopSG then towerStopSG:Destroy() end
+		if towerStopBtn then towerStopBtn:Destroy() end
 		local TweenService = game:GetService("TweenService")
 		local sg = Instance.new("ScreenGui")
-		sg.Name = "TowerStopGui"
+		sg.Name = "GGHubTowerStop"
 		sg.ResetOnSpawn = false
 		sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-		pcall(function() sg.Parent = game:GetService("CoreGui") end)
-		if not sg.Parent then sg.Parent = LocalPlayer.PlayerGui end
+		sg.DisplayOrder = 999
+		local ok = pcall(function() sg.Parent = game:GetService("CoreGui") end)
+		if not ok or not sg.Parent then sg.Parent = LocalPlayer.PlayerGui end
 		local btn = Instance.new("TextButton")
 		btn.Text = "STOP"
 		btn.Size = UDim2.new(0, 90, 0, 36)
-		btn.Position = UDim2.new(1, -105, 0, 10)
+		btn.Position = UDim2.new(1, -106, 0, 10)
+		btn.AnchorPoint = Vector2.new(0, 0)
 		btn.BackgroundColor3 = Color3.fromRGB(185, 45, 45)
 		btn.TextColor3 = Color3.new(1, 1, 1)
 		btn.Font = Enum.Font.GothamBold
@@ -294,14 +298,14 @@ return function(ctx)
 		btn.MouseButton1Click:Connect(function()
 			onStop()
 		end)
-		towerStopScreenGui = sg
+		towerStopSG = sg
 		towerStopBtn = btn
 	end
 
 	local function hideStopButton()
-		if towerStopScreenGui then
-			towerStopScreenGui:Destroy()
-			towerStopScreenGui = nil
+		if towerStopSG then
+			towerStopSG:Destroy()
+			towerStopSG = nil
 			towerStopBtn = nil
 		end
 	end
@@ -383,12 +387,25 @@ return function(ctx)
 		if activeLuckyBlocks then
 			for _, name in ipairs(luckyNames) do
 				local folder = activeLuckyBlocks:FindFirstChild(name)
-				if folder then
-					for _, child in ipairs(folder:GetChildren()) do
-						if child.Parent then
-							local pos = getPosition(child)
-							if pos then
-								table.insert(targets, {obj = child, pos = pos})
+				if folder and folder.Parent then
+					local pos = getPosition(folder)
+					if not pos then
+						local part = folder:FindFirstChildWhichIsA("BasePart", true)
+						if part then pos = part.Position end
+					end
+					if pos then
+						table.insert(targets, {obj = folder, pos = pos})
+					else
+						for _, child in ipairs(folder:GetChildren()) do
+							if child.Parent then
+								local cpos = getPosition(child)
+								if not cpos then
+									local p = child:FindFirstChildWhichIsA("BasePart", true)
+									if p then cpos = p.Position end
+								end
+								if cpos then
+									table.insert(targets, {obj = child, pos = cpos})
+								end
 							end
 						end
 					end
@@ -1115,7 +1132,6 @@ return function(ctx)
 								switchToMobile()
 							end
 
-							hideStopButton()
 							showNotification("Tower complete! Cooldown: 5:15")
 							break
 						end
