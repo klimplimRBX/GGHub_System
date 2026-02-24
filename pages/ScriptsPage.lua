@@ -258,40 +258,50 @@ return function(ctx)
 		end)
 	end
 
+	local towerStopScreenGui = nil
 	local towerStopBtn = nil
 
 	local function showStopButton(onStop)
-		if towerStopBtn then towerStopBtn:Destroy() end
+		if towerStopScreenGui then towerStopScreenGui:Destroy() end
+		local TweenService = game:GetService("TweenService")
+		local sg = Instance.new("ScreenGui")
+		sg.Name = "TowerStopGui"
+		sg.ResetOnSpawn = false
+		sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+		pcall(function() sg.Parent = game:GetService("CoreGui") end)
+		if not sg.Parent then sg.Parent = LocalPlayer.PlayerGui end
 		local btn = Instance.new("TextButton")
 		btn.Text = "STOP"
-		btn.Size = UDim2.new(0, 80, 0, 32)
-		btn.Position = UDim2.new(1, -95, 0, 12)
+		btn.Size = UDim2.new(0, 90, 0, 36)
+		btn.Position = UDim2.new(1, -105, 0, 10)
 		btn.BackgroundColor3 = Color3.fromRGB(185, 45, 45)
 		btn.TextColor3 = Color3.new(1, 1, 1)
 		btn.Font = Enum.Font.GothamBold
-		btn.TextSize = 13
+		btn.TextSize = 14
 		btn.AutoButtonColor = false
-		btn.ZIndex = 200
-		btn.Parent = gui
+		btn.ZIndex = 10
+		btn.Parent = sg
 		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
 		local stroke = Instance.new("UIStroke", btn)
-		stroke.Color = Color3.fromRGB(220, 60, 60)
-		stroke.Thickness = 1
+		stroke.Color = Color3.fromRGB(220, 70, 70)
+		stroke.Thickness = 1.5
 		btn.MouseEnter:Connect(function()
-			game:GetService("TweenService"):Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(210, 55, 55)}):Play()
+			TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(215, 60, 60)}):Play()
 		end)
 		btn.MouseLeave:Connect(function()
-			game:GetService("TweenService"):Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(185, 45, 45)}):Play()
+			TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(185, 45, 45)}):Play()
 		end)
 		btn.MouseButton1Click:Connect(function()
 			onStop()
 		end)
+		towerStopScreenGui = sg
 		towerStopBtn = btn
 	end
 
 	local function hideStopButton()
-		if towerStopBtn then
-			towerStopBtn:Destroy()
+		if towerStopScreenGui then
+			towerStopScreenGui:Destroy()
+			towerStopScreenGui = nil
 			towerStopBtn = nil
 		end
 	end
@@ -1085,9 +1095,20 @@ return function(ctx)
 
 							task.wait(0.5)
 
-							for i = 1, 10 do
-								if clickYesButton() then break end
-								task.wait(0.3)
+							if not towerYesPos then
+								showNotification("Tower done! Click the YES button now to save its position.")
+								startLearningYesClick()
+								local elapsed = 0
+								while towerYesLearning and elapsed < 30 do
+									task.wait(0.1)
+									elapsed = elapsed + 0.1
+								end
+								towerYesLearning = false
+							else
+								for i = 1, 10 do
+									if clickYesButton() then break end
+									task.wait(0.3)
+								end
 							end
 
 							if isMobile then
@@ -1141,4 +1162,3 @@ return function(ctx)
 	note.TextYAlignment = Enum.TextYAlignment.Top
 	note.Parent = scriptPage
 end
-
