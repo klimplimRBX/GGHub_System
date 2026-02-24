@@ -156,6 +156,24 @@ return function(ctx)
 		end)
 	end
 
+	local function unequipTool()
+		pcall(function()
+			local character = LocalPlayer.Character
+			if not character then return end
+			local humanoid = character:FindFirstChildOfClass("Humanoid")
+			if humanoid then humanoid:UnequipTools() end
+		end)
+	end
+
+	local function unequipTool()
+		pcall(function()
+			local character = LocalPlayer.Character
+			if not character then return end
+			local humanoid = character:FindFirstChildOfClass("Humanoid")
+			if humanoid then humanoid:UnequipTools() end
+		end)
+	end
+
 	local function activateNearestInstant()
 		local root = getCharacterRoots()
 		if not root then return end
@@ -341,6 +359,8 @@ return function(ctx)
 		end
 
 		goToBase(speed)
+		task.wait(1)
+		unequipTool()
 		return collected
 	end
 
@@ -725,6 +745,8 @@ return function(ctx)
 						stopCycle("No character found!")
 						cycleError = true
 					else
+						unequipTool()
+						task.wait(1)
 						switchToPC()
 						root.CFrame = CFrame.new(TOWER_POS)
 						root.AssemblyLinearVelocity = Vector3.zero
@@ -987,10 +1009,10 @@ return function(ctx)
 	end)
 
 	local note = Instance.new("TextLabel")
-	note.Text = "Note: MAKE SURE THE TOWER IS AVAILABLE AND NOT ON COOLDOWN. Auto Tower restarts automatically every 5:15 after completion. Divine/Infinity/Celestial collectors pause the Tower temporarily. Infinity has highest priority, then Divine, then Celestial. On mobile, input mode is restored after Tower completion."
+	note.Text = "Note: MAKE SURE THE TOWER IS AVAILABLE AND NOT ON COOLDOWN. Auto Tower restarts automatically every 5:15 after completion. Use the auto collect rarity brainrots with the auto tower so it collects your rewards. Infinity has highest priority, then Divine, then Celestial. On mobile, input mode is restored after Tower completion (in theory, might not work for some people)"
 	note.Size = UDim2.new(1, -20, 0, 50)
 	note.BackgroundTransparency = 1
-	note.TextColor3 = Color3.fromRGB(220, 220, 220)
+	note.TextColor3 = Color3.fromRGB(250, 250, 250)
 	note.Font = Enum.Font.Gotham
 	note.TextSize = 10
 	note.TextWrapped = true
