@@ -215,22 +215,30 @@ return function(ctx)
 	end
 
 	local function clickYesButton()
-		for _, obj in ipairs(LocalPlayer.PlayerGui:GetDescendants()) do
-			if obj:IsA("TextButton") and obj.Visible then
-				local txt = obj.Text or ""
-				if txt == "Yes" or txt:lower() == "yes" then
-					pcall(function() obj:Activate() end)
-					task.wait(0.05)
-					pcall(function()
-						local absPos = obj.AbsolutePosition
-						local absSize = obj.AbsoluteSize
-						local cx = absPos.X + absSize.X / 2
-						local cy = absPos.Y + absSize.Y / 2
-						VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, true, game, 0)
+		local guiRoots = {LocalPlayer.PlayerGui, game:GetService("CoreGui")}
+		for _, guiRoot in ipairs(guiRoots) do
+			for _, obj in ipairs(guiRoot:GetDescendants()) do
+				if obj:IsA("TextButton") and obj.Visible then
+					local txt = obj.Text or ""
+					if txt == "Yes" or txt:lower() == "yes" then
+						pcall(function() obj:Activate() end)
 						task.wait(0.05)
-						VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, false, game, 0)
-					end)
-					return true
+						pcall(function()
+							local absPos = obj.AbsolutePosition
+							local absSize = obj.AbsoluteSize
+							local cx = absPos.X + absSize.X / 2
+							local cy = absPos.Y + absSize.Y / 2
+							if mousemoveabs then
+								mousemoveabs(cx, cy)
+								task.wait(0.05)
+								mouse1click()
+							end
+							VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, true, game, 0)
+							task.wait(0.05)
+							VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, false, game, 0)
+						end)
+						return true
+					end
 				end
 			end
 		end
@@ -340,6 +348,19 @@ return function(ctx)
 
 		local collected = false
 
+		local noclipConn = RunService.Stepped:Connect(function()
+			local char = LocalPlayer.Character
+			if char then
+				for _, part in ipairs(char:GetDescendants()) do
+					if part:IsA("BasePart") then
+						part.CanCollide = false
+					end
+				end
+			end
+		end)
+
+		workspace.Gravity = 5
+
 		pcall(function()
 			genericFlyTo(Vector3.new(root.Position.X, COLLECTOR_UNDER_Y, root.Position.Z), speed)
 			task.wait(0.01)
@@ -359,6 +380,15 @@ return function(ctx)
 		end
 
 		goToBase(speed)
+
+		noclipConn:Disconnect()
+		for _, part in ipairs((LocalPlayer.Character or {}):GetDescendants()) do
+			if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+				part.CanCollide = true
+				end
+		end
+		workspace.Gravity = 196.2
+
 		task.wait(1)
 		unequipTool()
 		return collected
@@ -1009,10 +1039,10 @@ return function(ctx)
 	end)
 
 	local note = Instance.new("TextLabel")
-	note.Text = "Note: MAKE SURE THE TOWER IS AVAILABLE AND NOT ON COOLDOWN. Auto Tower restarts automatically every 5:15 after completion. Use the auto collect rarity brainrots with the auto tower so it collects your rewards. Infinity has highest priority, then Divine, then Celestial. On mobile, input mode is restored after Tower completion (in theory, might not work for some people)"
+	note.Text = "Note: MAKE SURE THE TOWER IS AVAILABLE AND NOT ON COOLDOWN. Auto Tower restarts automatically every 5:15 after completion. Divine/Infinity/Celestial collectors pause the Tower temporarily. Infinity has highest priority, then Divine, then Celestial. On mobile, input mode is restored after Tower completion."
 	note.Size = UDim2.new(1, -20, 0, 50)
 	note.BackgroundTransparency = 1
-	note.TextColor3 = Color3.fromRGB(250, 250, 250)
+	note.TextColor3 = Color3.fromRGB(220, 220, 220)
 	note.Font = Enum.Font.Gotham
 	note.TextSize = 10
 	note.TextWrapped = true
