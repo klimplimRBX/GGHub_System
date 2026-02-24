@@ -30,6 +30,7 @@ return function(ctx)
 	local AutoCollectCelestialEnabled = false
 	local AutoDoomTowerEnabled = false
 	local AutoDoomTowerRunning = false
+	local _towerTaskActive = false
 	local lastCollectedDoomCoin = nil
 	local towerPausedForCollector = false
 
@@ -260,52 +261,38 @@ return function(ctx)
 
 	local towerStopBtn = nil
 
-	local towerStopSG = nil
-
 	local function showStopButton(onStop)
-		if towerStopSG then towerStopSG:Destroy() end
 		if towerStopBtn then towerStopBtn:Destroy() end
-		local TweenService = game:GetService("TweenService")
-		local sg = Instance.new("ScreenGui")
-		sg.Name = "GGHubTowerStop"
-		sg.ResetOnSpawn = false
-		sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-		sg.DisplayOrder = 999
-		local ok = pcall(function() sg.Parent = game:GetService("CoreGui") end)
-		if not ok or not sg.Parent then sg.Parent = LocalPlayer.PlayerGui end
 		local btn = Instance.new("TextButton")
 		btn.Text = "STOP"
-		btn.Size = UDim2.new(0, 90, 0, 36)
-		btn.Position = UDim2.new(1, -106, 0, 10)
-		btn.AnchorPoint = Vector2.new(0, 0)
+		btn.Size = UDim2.new(0, 80, 0, 32)
+		btn.Position = UDim2.new(1, -95, 0, 12)
 		btn.BackgroundColor3 = Color3.fromRGB(185, 45, 45)
 		btn.TextColor3 = Color3.new(1, 1, 1)
 		btn.Font = Enum.Font.GothamBold
-		btn.TextSize = 14
+		btn.TextSize = 13
 		btn.AutoButtonColor = false
-		btn.ZIndex = 10
-		btn.Parent = sg
+		btn.ZIndex = 200
+		btn.Parent = gui
 		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
 		local stroke = Instance.new("UIStroke", btn)
-		stroke.Color = Color3.fromRGB(220, 70, 70)
-		stroke.Thickness = 1.5
+		stroke.Color = Color3.fromRGB(220, 60, 60)
+		stroke.Thickness = 1
 		btn.MouseEnter:Connect(function()
-			TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(215, 60, 60)}):Play()
+			game:GetService("TweenService"):Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(210, 55, 55)}):Play()
 		end)
 		btn.MouseLeave:Connect(function()
-			TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(185, 45, 45)}):Play()
+			game:GetService("TweenService"):Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(185, 45, 45)}):Play()
 		end)
 		btn.MouseButton1Click:Connect(function()
 			onStop()
 		end)
-		towerStopSG = sg
 		towerStopBtn = btn
 	end
 
 	local function hideStopButton()
-		if towerStopSG then
-			towerStopSG:Destroy()
-			towerStopSG = nil
+		if towerStopBtn then
+			towerStopBtn:Destroy()
 			towerStopBtn = nil
 		end
 	end
@@ -387,25 +374,12 @@ return function(ctx)
 		if activeLuckyBlocks then
 			for _, name in ipairs(luckyNames) do
 				local folder = activeLuckyBlocks:FindFirstChild(name)
-				if folder and folder.Parent then
-					local pos = getPosition(folder)
-					if not pos then
-						local part = folder:FindFirstChildWhichIsA("BasePart", true)
-						if part then pos = part.Position end
-					end
-					if pos then
-						table.insert(targets, {obj = folder, pos = pos})
-					else
-						for _, child in ipairs(folder:GetChildren()) do
-							if child.Parent then
-								local cpos = getPosition(child)
-								if not cpos then
-									local p = child:FindFirstChildWhichIsA("BasePart", true)
-									if p then cpos = p.Position end
-								end
-								if cpos then
-									table.insert(targets, {obj = child, pos = cpos})
-								end
+				if folder then
+					for _, child in ipairs(folder:GetChildren()) do
+						if child.Parent then
+							local pos = getPosition(child)
+							if pos then
+								table.insert(targets, {obj = child, pos = pos})
 							end
 						end
 					end
@@ -733,6 +707,8 @@ return function(ctx)
 			return
 		end
 
+		if _towerTaskActive then showNotification("Tower already running!") return end
+
 		AutoDoomTowerEnabled = true
 		showNotification("Starting...")
 		showStopButton(function()
@@ -743,6 +719,7 @@ return function(ctx)
 			showNotification("Auto Tower stopped.")
 		end)
 
+		_towerTaskActive = true
 		task.spawn(function()
 			while AutoDoomTowerEnabled do
 				AutoDoomTowerRunning = true
@@ -795,6 +772,9 @@ return function(ctx)
 							task.wait(1.5)
 							root, humanoid = getCharacterRoots()
 							if not isCharacterAlive(root, humanoid) then return false end
+							root.CFrame = CFrame.new(root.Position.X, TOWER_UNDER_Y, root.Position.Z)
+							root.AssemblyLinearVelocity = Vector3.zero
+							task.wait(0.1)
 						end
 						local dt = RunService.Heartbeat:Wait()
 						local remaining = (targetPos - root.Position)
@@ -1035,20 +1015,27 @@ return function(ctx)
 							if not flyOk or towerPausedForCollector then break end
 							if not target.Parent then continue end
 
-							task.wait(0.05)
-
-							local beforeParent = target.Parent
-							pcall(activateNearestInstant)
-							task.wait(0.05)
-
-							if not target.Parent or target.Parent ~= beforeParent then
-								collected = true
-							else
+							local _before = target.Parent
+							for _p = 1, 10 do
 								pcall(activateNearestInstant)
-								task.wait(0.05)
-								if not target.Parent or target.Parent ~= beforeParent then
+								task.wait(0.15)
+								if not target.Parent or target.Parent ~= _before then
 									collected = true
+									break
 								end
+							end
+							if not collected then
+								pcall(function()
+									local _r = getCharacterRoots()
+									if _r then
+										_r.CFrame = CFrame.new(_r.Position.X, -60, _r.Position.Z)
+										_r.AssemblyLinearVelocity = Vector3.zero
+									end
+									task.wait(0.3)
+									LocalPlayer:LoadCharacter()
+								end)
+								task.wait(3)
+								break
 							end
 						end
 
@@ -1113,12 +1100,12 @@ return function(ctx)
 							task.wait(0.5)
 
 							if not towerYesPos then
-								showNotification("Tower done! Click the YES button now to save its position.")
+								showNotification("Tower done! Click YES now to save the position.")
 								startLearningYesClick()
-								local elapsed = 0
-								while towerYesLearning and elapsed < 30 do
+								local _elapsed = 0
+								while towerYesLearning and _elapsed < 30 do
 									task.wait(0.1)
-									elapsed = elapsed + 0.1
+									_elapsed = _elapsed + 0.1
 								end
 								towerYesLearning = false
 							else
@@ -1132,6 +1119,7 @@ return function(ctx)
 								switchToMobile()
 							end
 
+							hideStopButton()
 							showNotification("Tower complete! Cooldown: 5:15")
 							break
 						end
