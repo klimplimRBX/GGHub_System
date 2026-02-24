@@ -215,32 +215,45 @@ return function(ctx)
 	end
 
 	local function clickYesButton()
-		local guiRoots = {LocalPlayer.PlayerGui, game:GetService("CoreGui")}
-		for _, guiRoot in ipairs(guiRoots) do
-			for _, obj in ipairs(guiRoot:GetDescendants()) do
-				if obj:IsA("TextButton") and obj.Visible then
-					local txt = obj.Text or ""
-					if txt == "Yes" or txt:lower() == "yes" then
-						pcall(function() obj:Activate() end)
-						task.wait(0.05)
-						pcall(function()
-							local absPos = obj.AbsolutePosition
-							local absSize = obj.AbsoluteSize
-							local cx = absPos.X + absSize.X / 2
-							local cy = absPos.Y + absSize.Y / 2
-							if mousemoveabs then
-								mousemoveabs(cx, cy)
-								task.wait(0.05)
-								mouse1click()
-							end
-							VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, true, game, 0)
-							task.wait(0.05)
-							VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, false, game, 0)
-						end)
-						return true
+		local screenSize = workspace.CurrentCamera.ViewportSize
+		local scx = screenSize.X / 2
+		local scy = screenSize.Y / 2
+		local found = false
+		local foundX, foundY = nil, nil
+		if getcolor then
+			local startX = math.max(0, scx - 500)
+			local startY = math.max(0, scy - 500)
+			local endX = math.min(screenSize.X, scx + 500)
+			local endY = math.min(screenSize.Y, scy + 500)
+			local step = 8
+			local tol = 18
+			for y = startY, endY, step do
+				for x = startX, endX, step do
+					local ok, pr, pg, pb = pcall(getcolor, x, y)
+					if ok and pr then
+						if math.abs(pr - 224) <= tol and math.abs(pg - 55) <= tol and math.abs(pb - 55) <= tol then
+							foundX = x
+							foundY = y
+							found = true
+							break
+						end
 					end
 				end
+				if found then break end
 			end
+		end
+		if found and foundX then
+			local clickX = foundX - 400
+			local clickY = foundY
+			if mousemoveabs then
+				mousemoveabs(clickX, clickY)
+				task.wait(0.08)
+				mouse1click()
+			end
+			VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, true, game, 0)
+			task.wait(0.05)
+			VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, false, game, 0)
+			return true
 		end
 		return false
 	end
@@ -370,13 +383,27 @@ return function(ctx)
 		end)
 
 		local beforeParent = target.Parent
-		for i = 1, 3 do
+		local attempts = 0
+		while attempts < 10 do
+			attempts = attempts + 1
 			pcall(activateNearestInstant)
-			task.wait(0.1)
+			task.wait(0.15)
+			if not target.Parent or target.Parent ~= beforeParent then
+				collected = true
+				break
+			end
 		end
-
-		if not target.Parent or target.Parent ~= beforeParent then
-			collected = true
+		if not collected then
+			pcall(function()
+				local root = getCharacterRoots()
+				if root then
+					root.CFrame = CFrame.new(root.Position.X, -60, root.Position.Z)
+					root.AssemblyLinearVelocity = Vector3.zero
+				end
+				task.wait(0.3)
+				LocalPlayer:LoadCharacter()
+			end)
+			task.wait(3)
 		end
 
 		goToBase(speed)
@@ -1039,10 +1066,10 @@ return function(ctx)
 	end)
 
 	local note = Instance.new("TextLabel")
-	note.Text = "Note: MAKE SURE THE TOWER IS AVAILABLE AND NOT ON COOLDOWN. Auto Tower restarts automatically every 5:15 after completion. Divine/Infinity/Celestial collectors pause the Tower temporarily. Infinity has highest priority, then Divine, then Celestial. On mobile, input mode is restored after Tower completion."
-	note.Size = UDim2.new(1, -20, 0, 50)
+	note.Text = "Note: MAKE SURE THE TOWER IS AVAILABLE AND NOT ON COOLDOWN FOR THE FIRST TIME! To cancel the auto tower just click the button another tower and a Notification saying it stopped will pop up. Auto Tower restarts automatically every 5:00 after completion. Please activate the auto collect the rarity brainrot you want so it collects your reward. Infinity has highest priority while Divine and celestial are lower, i have fixed sum bugs since then but it should be fine now, also on mobile it changes from the thumbstick to keyboard, so go into roblox settings and change that when you don't want it to auto farm anymore"
+	note.Size = UDim2.new(1, -20, 0, 60)
 	note.BackgroundTransparency = 1
-	note.TextColor3 = Color3.fromRGB(220, 220, 220)
+	note.TextColor3 = Color3.fromRGB(250, 250, 250)
 	note.Font = Enum.Font.Gotham
 	note.TextSize = 10
 	note.TextWrapped = true
