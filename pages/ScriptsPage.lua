@@ -18,7 +18,21 @@ return function(ctx)
 		pcall(function()
 			local val = LocalPlayer.PlayerGui.BottomLeft.JumpAndSpeed.Container.EventCurrency.Value
 			local v = tonumber(val.Text)
-			if v then speed = v * 1.75 end
+			if v then
+				if v < 100 then
+					speed = v
+				elseif v < 200 then
+					speed = v * 1.05
+				elseif v < 300 then
+					speed = v * 1.10
+				elseif v < 400 then
+					speed = v * 1.15
+				elseif v < 500 then
+					speed = v * 1.20
+				else
+					speed = v * 1.25
+				end
+			end
 		end)
 		return speed
 	end
@@ -108,6 +122,7 @@ return function(ctx)
 		local root, humanoid = getCharacterRoots()
 		if not isCharacterAlive(root, humanoid) then return false end
 
+		local distanceTraveled = 0
 		while (root.Position - targetPos).Magnitude > 1.5 do
 			if not AutoPressDoomButtonEnabled and not AutoFarmDoomCoinEnabled then return false end
 			local dt = RunService.Heartbeat:Wait()
@@ -116,6 +131,11 @@ return function(ctx)
 			local step = math.min(speed * dt, remaining.Magnitude)
 			root.CFrame = root.CFrame + remaining.Unit * step
 			root.AssemblyLinearVelocity = Vector3.zero
+			distanceTraveled = distanceTraveled + step
+			if distanceTraveled >= 300 then
+				distanceTraveled = 0
+				task.wait(0.05)
+			end
 		end
 
 		if isCharacterAlive(root, humanoid) then
@@ -275,7 +295,7 @@ return function(ctx)
 		return clicked
 	end
 
-	local COLLECTOR_UNDER_Y = -20
+	local COLLECTOR_UNDER_Y = -15
 	local COLLECTOR_FLAT_Y = -0.5
 	local BASE_POS = Vector3.new(125, 3.3, 0)
 
@@ -284,6 +304,7 @@ return function(ctx)
 		local root = getCharacterRoots()
 		if not root then return false end
 
+		local distanceTraveled = 0
 		while (root.Position - targetPos).Magnitude > 1.5 do
 			local dt = RunService.Heartbeat:Wait()
 			root = getCharacterRoots()
@@ -292,6 +313,11 @@ return function(ctx)
 			local step = math.min(speed * dt, remaining.Magnitude)
 			root.CFrame = root.CFrame + remaining.Unit * step
 			root.AssemblyLinearVelocity = Vector3.zero
+			distanceTraveled = distanceTraveled + step
+			if distanceTraveled >= 300 then
+				distanceTraveled = 0
+				task.wait(0.05)
+			end
 		end
 		root = getCharacterRoots()
 		if root then
@@ -673,15 +699,9 @@ return function(ctx)
 
 				local TOWER_POS = Vector3.new(4325, 6.3, -2.5)
 				local TOWER_UNDER_Y = -20
-				local BRAINROT_UNDER_Y = -20
+				local BRAINROT_UNDER_Y = -15
 				local BRAINROT_FLAT_Y = -0.5
-				local flySpeed = 1200
-
-				pcall(function()
-					local val = LocalPlayer.PlayerGui.BottomLeft.JumpAndSpeed.Container.EventCurrency.Value
-					local speed = tonumber(val.Text)
-					if speed then flySpeed = (speed * 2.5) - 50 end
-				end)
+				local flySpeed = getEventCurrencySpeed()
 
 				local noclipConn
 				noclipConn = RunService.Stepped:Connect(function()
@@ -711,6 +731,7 @@ return function(ctx)
 						root, humanoid = getCharacterRoots()
 						if not isCharacterAlive(root, humanoid) then return false end
 					end
+					local distanceTraveled = 0
 					while (root.Position - targetPos).Magnitude > 1.5 do
 						if not AutoDoomTowerRunning or towerPausedForCollector then return false end
 						if not isCharacterAlive(root, humanoid) then
@@ -727,6 +748,11 @@ return function(ctx)
 						local step = math.min(speed * dt, remaining.Magnitude)
 						root.CFrame = root.CFrame + remaining.Unit * step
 						root.AssemblyLinearVelocity = Vector3.zero
+						distanceTraveled = distanceTraveled + step
+						if distanceTraveled >= 300 then
+							distanceTraveled = 0
+							task.wait(0.05)
+						end
 					end
 					if isCharacterAlive(root, humanoid) then
 						root.CFrame = CFrame.new(targetPos)
@@ -895,11 +921,7 @@ return function(ctx)
 					local keywords = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Secret"}
 
 					while AutoDoomTowerRunning and AutoDoomTowerEnabled do
-						pcall(function()
-							local val = LocalPlayer.PlayerGui.BottomLeft.JumpAndSpeed.Container.EventCurrency.Value
-							local speed = tonumber(val.Text)
-							if speed then flySpeed = (speed * 2.5) - 50 end
-						end)
+						flySpeed = getEventCurrencySpeed()
 
 						local pauseOk = handlePauseForCollector()
 						if not pauseOk then break end
