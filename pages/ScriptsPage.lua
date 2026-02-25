@@ -1115,8 +1115,8 @@ return function(ctx)
 	end)
 
 	local note = Instance.new("TextLabel")
-	note.Text = "Note: Use the auto collect functions to auto collect your rewards, If this is your first time using it, wait until It finishes since It needs your help to define a function, also in mobile It changes to keyboard, so change that on the Roblox settings when you din't want to farm anymore. Also make sure the tower is avaiable when you activate the auto doom tower for the first time, then it auto does it."
-	note.Size = UDim2.new(1, -20, 0, 40)
+	note.Text = "Note: Use the auto collect functions to auto collect your rewards. Also in mobile It changes to keyboard, so change that on the Roblox settings when you don't want to farm anymore. Also make sure the tower is avaiable when you activate the auto doom tower for the first time, then it auto does it."
+	note.Size = UDim2.new(1, -20, 0, 30)
 	note.BackgroundTransparency = 1
 	note.TextColor3 = Color3.fromRGB(250, 250, 250)
 	note.Font = Enum.Font.Gotham
