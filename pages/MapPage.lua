@@ -40,13 +40,13 @@ return function(ctx)
 				if v < 100 then
 					speed = v
 				elseif v < 200 then
-					speed = v * 1.05
-				elseif v < 300 then
 					speed = v * 1.10
-				elseif v < 400 then
-					speed = v * 1.15
-				elseif v < 500 then
+				elseif v < 300 then
 					speed = v * 1.20
+				elseif v < 400 then
+					speed = v * 1.30
+				elseif v < 500 then
+					speed = v * 1.40
 				else
 					speed = v * 1.25
 				end
@@ -702,3 +702,4 @@ return function(ctx)
 	end)
 	createWaypointBtnWrapper = setLastFrameLayout(mapPage, 999)
 end
+
