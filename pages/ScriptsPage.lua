@@ -261,32 +261,12 @@ return function(ctx)
 		end
 	end
 
-	local GuiService = game:GetService("GuiService")
-
 	local function clickYesButton()
 		local clicked = false
 		pcall(function()
-			local inset = GuiService:GetGuiInset()
-			local yesBtn = LocalPlayer.PlayerGui:FindFirstChild("ChoiceGui")
-				and LocalPlayer.PlayerGui.ChoiceGui:FindFirstChild("Choice")
-				and LocalPlayer.PlayerGui.ChoiceGui.Choice:FindFirstChild("Choices")
-				and LocalPlayer.PlayerGui.ChoiceGui.Choice.Choices:FindFirstChild("Yes")
+			local yesBtn = LocalPlayer.PlayerGui.ChoiceGui.Choice.Choices.Yes
 			if yesBtn and yesBtn.Visible and yesBtn.AbsoluteSize.X > 0 then
-				local center = yesBtn.AbsolutePosition + yesBtn.AbsoluteSize * 0.5
-				local cx = math.floor(center.X)
-				local cy = math.floor(center.Y + inset.Y)
-				if mousemoveabs then
-					mousemoveabs(cx, cy)
-					task.wait(0.1)
-					mouse1press()
-					task.wait(0.05)
-					mouse1release()
-					clicked = true
-					return
-				end
-				VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, true, game, 0)
-				task.wait(0.05)
-				VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, false, game, 0)
+				yesBtn.MouseButton1Click:Fire()
 				clicked = true
 			end
 		end)
