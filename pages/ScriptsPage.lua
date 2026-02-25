@@ -259,10 +259,16 @@ return function(ctx)
 		end)
 	end
 
-	local towerStopBtn = nil
+	local towerStopGui = nil
 
 	local function showStopButton(onStop)
-		if towerStopBtn then towerStopBtn:Destroy() end
+		if towerStopGui then towerStopGui:Destroy() end
+		local sg = Instance.new("ScreenGui")
+		sg.Name = "GGHub_StopGui"
+		sg.ResetOnSpawn = false
+		sg.DisplayOrder = 9999
+		sg.IgnoreGuiInset = true
+		sg.Parent = LocalPlayer.PlayerGui
 		local btn = Instance.new("TextButton")
 		btn.Text = "STOP"
 		btn.Size = UDim2.new(0, 80, 0, 32)
@@ -273,7 +279,7 @@ return function(ctx)
 		btn.TextSize = 13
 		btn.AutoButtonColor = false
 		btn.ZIndex = 200
-		btn.Parent = gui
+		btn.Parent = sg
 		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
 		local stroke = Instance.new("UIStroke", btn)
 		stroke.Color = Color3.fromRGB(220, 60, 60)
@@ -287,17 +293,37 @@ return function(ctx)
 		btn.MouseButton1Click:Connect(function()
 			onStop()
 		end)
-		towerStopBtn = btn
+		towerStopGui = sg
 	end
 
 	local function hideStopButton()
-		if towerStopBtn then
-			towerStopBtn:Destroy()
-			towerStopBtn = nil
+		if towerStopGui then
+			towerStopGui:Destroy()
+			towerStopGui = nil
 		end
 	end
 
 	local function clickYesButton()
+		local clicked = false
+		pcall(function()
+			for _, obj in ipairs(LocalPlayer.PlayerGui:GetDescendants()) do
+				if obj:IsA("TextButton") and obj.Text == "Yes" and obj.Visible and obj.AbsoluteSize.X > 0 then
+					local center = obj.AbsolutePosition + obj.AbsoluteSize / 2
+					local cx, cy = math.floor(center.X), math.floor(center.Y)
+					if mousemoveabs then
+						mousemoveabs(cx, cy)
+						task.wait(0.08)
+						mouse1click()
+					end
+					VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, true, game, 0)
+					task.wait(0.05)
+					VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, false, game, 0)
+					clicked = true
+					return
+				end
+			end
+		end)
+		if clicked then return true end
 		if towerYesPos then
 			local cx, cy = towerYesPos.x, towerYesPos.y
 			if mousemoveabs then
