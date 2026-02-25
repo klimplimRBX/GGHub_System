@@ -263,6 +263,20 @@ return function(ctx)
 
 	local GuiService = game:GetService("GuiService")
 
+	local function isChoiceGuiVisible()
+		local ok = false
+		pcall(function()
+			local yesBtn = LocalPlayer.PlayerGui.ChoiceGui.Choice.Choices.Yes
+			ok = yesBtn ~= nil and yesBtn.Visible
+		end)
+		return ok
+	end
+
+	local function isTowerHUDGone()
+		local hud = LocalPlayer.PlayerGui:FindFirstChild("TowerTrialHUD")
+		return hud == nil or not hud.Enabled
+	end
+
 	local function clickYesButton()
 		local clicked = false
 		pcall(function()
@@ -912,12 +926,80 @@ return function(ctx)
 				if not cycleError then
 					local keywords = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Secret"}
 
+					local function claimTowerReward()
+						cycleComplete = true
+						AutoDoomTowerRunning = false
+						workspace.Gravity = 196.2
+						if noclipConn then noclipConn:Disconnect() end
+
+						task.wait(3)
+
+						local root2 = getCharacterRoots()
+						if root2 then
+							root2.CFrame = CFrame.new(TOWER_POS)
+							root2.AssemblyLinearVelocity = Vector3.zero
+						end
+
+						pcall(function()
+							towerPrompt.RequiresLineOfSight = false
+							towerPrompt.MaxActivationDistance = 32
+							pcall(fireproximityprompt, towerPrompt)
+							task.wait(0.3)
+							towerPrompt:InputHoldBegin()
+							task.wait(0.5)
+							towerPrompt:InputHoldEnd()
+							pcall(fireproximityprompt, towerPrompt)
+						end)
+
+						task.wait(0.5)
+
+						for _i = 1, 10 do
+							if clickYesButton() then break end
+							task.wait(0.3)
+						end
+
+						if isMobile then switchToMobile() end
+						showNotification("Tower complete! Cooldown: 5:15")
+					end
+
 					while AutoDoomTowerRunning and AutoDoomTowerEnabled do
 						pcall(function()
 							local val = LocalPlayer.PlayerGui.BottomLeft.JumpAndSpeed.Container.EventCurrency.Value
 							local speed = tonumber(val.Text)
 							if speed then flySpeed = (speed * 2.5) - 50 end
 						end)
+
+						-- Failsafe: claim dialog already open (trial complete before script noticed)
+						if isChoiceGuiVisible() then
+							showNotification("Claim dialog detected, claiming reward...")
+							claimTowerReward()
+							break
+						end
+
+						-- Failsafe: TowerTrialHUD disappeared mid-loop (claimed externally or trial expired)
+						if isTowerHUDGone() then
+							showNotification("Tower HUD gone, entering cooldown...")
+							cycleComplete = true
+							AutoDoomTowerRunning = false
+							workspace.Gravity = 196.2
+							if noclipConn then noclipConn:Disconnect() end
+							if isMobile then switchToMobile() end
+							showNotification("Tower complete! Cooldown: 5:15")
+							break
+						end
+
+						-- Failsafe: deposits already maxed before even going to collect
+						local _depCurrent, _depMax = 0, 10
+						pcall(function()
+							local c, m = depositsLabel.Text:match("(%d+)/(%d+)")
+							_depCurrent = tonumber(c) or 0
+							_depMax = tonumber(m) or 10
+						end)
+						if _depCurrent >= _depMax then
+							showNotification("Deposits already full, claiming...")
+							claimTowerReward()
+							break
+						end
 
 						local pauseOk = handlePauseForCollector()
 						if not pauseOk then break end
@@ -1037,42 +1119,7 @@ return function(ctx)
 						max = tonumber(max) or 10
 
 						if current >= max then
-							cycleComplete = true
-							AutoDoomTowerRunning = false
-							workspace.Gravity = 196.2
-							if noclipConn then noclipConn:Disconnect() end
-
-							task.wait(3)
-
-							local root2 = getCharacterRoots()
-							if root2 then
-								root2.CFrame = CFrame.new(TOWER_POS)
-								root2.AssemblyLinearVelocity = Vector3.zero
-							end
-
-							pcall(function()
-								towerPrompt.RequiresLineOfSight = false
-								towerPrompt.MaxActivationDistance = 32
-								pcall(fireproximityprompt, towerPrompt)
-								task.wait(0.3)
-								towerPrompt:InputHoldBegin()
-								task.wait(0.5)
-								towerPrompt:InputHoldEnd()
-								pcall(fireproximityprompt, towerPrompt)
-							end)
-
-							task.wait(0.5)
-
-							for i = 1, 10 do
-								if clickYesButton() then break end
-								task.wait(0.3)
-							end
-
-							if isMobile then
-								switchToMobile()
-							end
-
-							showNotification("Tower complete! Cooldown: 5:15")
+							claimTowerReward()
 							break
 						end
 
