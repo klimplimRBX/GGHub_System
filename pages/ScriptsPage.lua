@@ -309,26 +309,27 @@ return function(ctx)
 		local clicked = false
 		pcall(function()
 			local inset = GuiService:GetGuiInset()
-			for _, obj in ipairs(LocalPlayer.PlayerGui:GetDescendants()) do
-				if obj:IsA("TextButton") and obj.Text == "Yes" and obj.Visible and obj.AbsoluteSize.X > 0 then
-					local center = obj.AbsolutePosition + obj.AbsoluteSize * 0.5
-					local cx = math.floor(center.X)
-					local cy = math.floor(center.Y + inset.Y)
-					if mousemoveabs then
-						mousemoveabs(cx, cy)
-						task.wait(0.1)
-						mouse1press()
-						task.wait(0.05)
-						mouse1release()
-						clicked = true
-						return
-					end
-					VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, true, game, 0)
+			local yesBtn = LocalPlayer.PlayerGui:FindFirstChild("ChoiceGui")
+				and LocalPlayer.PlayerGui.ChoiceGui:FindFirstChild("Choice")
+				and LocalPlayer.PlayerGui.ChoiceGui.Choice:FindFirstChild("Choices")
+				and LocalPlayer.PlayerGui.ChoiceGui.Choice.Choices:FindFirstChild("Yes")
+			if yesBtn and yesBtn.Visible and yesBtn.AbsoluteSize.X > 0 then
+				local center = yesBtn.AbsolutePosition + yesBtn.AbsoluteSize * 0.5
+				local cx = math.floor(center.X)
+				local cy = math.floor(center.Y + inset.Y)
+				if mousemoveabs then
+					mousemoveabs(cx, cy)
+					task.wait(0.1)
+					mouse1press()
 					task.wait(0.05)
-					VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, false, game, 0)
+					mouse1release()
 					clicked = true
 					return
 				end
+				VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, true, game, 0)
+				task.wait(0.05)
+				VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, false, game, 0)
+				clicked = true
 			end
 		end)
 		return clicked
@@ -1167,10 +1168,10 @@ return function(ctx)
 	end)
 
 	local note = Instance.new("TextLabel")
-	note.Text = "Note: Use the auto collect functions to auto collect your rewards, If this is your first time using it, wait until It finishes since It needs your help to define a function, also in mobile It changes to keyboard, so change that on the Roblox settings when you din't want to farm anymore. Also make sure the tower is avaiable when you activate the auto doom tower for the first time, then it auto does it."
-	note.Size = UDim2.new(1, -20, 0, 40)
+	note.Text = "Note: Use the auto collect functions to auto collect your rewards. Also in mobile It changes to keyboard, so change that on the Roblox settings when you don't want to farm anymore. Also make sure the tower is avaiable when you activate the auto doom tower for the first time, then it auto does it infinitely"
+	note.Size = UDim2.new(1, -20, 0, 30)
 	note.BackgroundTransparency = 1
-	note.TextColor3 = Color3.fromRGB(250, 250, 250)
+	note.TextColor3 = Color3.fromRGB(256, 256, 256)
 	note.Font = Enum.Font.Gotham
 	note.TextSize = 10
 	note.TextWrapped = true
