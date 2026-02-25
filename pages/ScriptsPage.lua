@@ -266,7 +266,9 @@ return function(ctx)
 		pcall(function()
 			local yesBtn = LocalPlayer.PlayerGui.ChoiceGui.Choice.Choices.Yes
 			if yesBtn and yesBtn.Visible and yesBtn.AbsoluteSize.X > 0 then
-				yesBtn.MouseButton1Click:Fire()
+				firesignal(yesBtn.MouseButton1Click)
+				task.wait(0.05)
+				firesignal(yesBtn.Activated)
 				clicked = true
 			end
 		end)
@@ -851,27 +853,28 @@ return function(ctx)
 				local trialBar, requirementLabel, depositsLabel, foundKeyword
 
 				if not cycleError then
-					task.wait(4)
-					pcall(function()
-						trialBar = LocalPlayer.PlayerGui:WaitForChild("TowerTrialHUD", 15):WaitForChild("TrialBar", 15)
-					end)
-					if not trialBar then
-						stopCycle("Something went wrong")
-						cycleError = true
-					else
-						requirementLabel = trialBar:FindFirstChild("Requirement")
-						depositsLabel = trialBar:FindFirstChild("Deposits")
-						if not requirementLabel or not depositsLabel then
-							stopCycle("Something was not found")
-							cycleError = true
+					while AutoDoomTowerEnabled do
+						pcall(function()
+							trialBar = LocalPlayer.PlayerGui:WaitForChild("TowerTrialHUD", 10):WaitForChild("TrialBar", 10)
+						end)
+						if trialBar then
+							requirementLabel = trialBar:FindFirstChild("Requirement")
+							depositsLabel = trialBar:FindFirstChild("Deposits")
+							if requirementLabel and depositsLabel then
+								break
+							end
 						end
+						showNotification("Tower HUD not ready, retrying in 10s...")
+						task.wait(10)
+					end
+					if not AutoDoomTowerEnabled then
+						cycleError = true
 					end
 				end
 
 				if not cycleError then
 					local keywords = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Secret"}
-					local elapsed = 0
-					while not foundKeyword and elapsed < 3 do
+					while not foundKeyword and AutoDoomTowerEnabled do
 						for _, kw in ipairs(keywords) do
 							if requirementLabel.Text:find(kw) then
 								foundKeyword = kw
@@ -879,12 +882,11 @@ return function(ctx)
 							end
 						end
 						if not foundKeyword then
-							task.wait(0.5)
-							elapsed = elapsed + 0.5
+							showNotification("Waiting for Tower requirement...")
+							task.wait(10)
 						end
 					end
-					if not foundKeyword then
-						stopCycle("Could not identify Tower requirement")
+					if not AutoDoomTowerEnabled then
 						cycleError = true
 					end
 				end
