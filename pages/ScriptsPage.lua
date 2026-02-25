@@ -16,21 +16,24 @@ return function(ctx)
 	local function getEventCurrencySpeed()
 		local speed = 1000
 		pcall(function()
-			local val = LocalPlayer.PlayerGui.BottomLeft.JumpAndSpeed.Container.EventCurrency.Value
-			local v = tonumber(val.Text)
+			local character = LocalPlayer.Character
+			if not character then return end
+			local humanoid = character:FindFirstChildOfClass("Humanoid")
+			if not humanoid then return end
+			local v = humanoid.WalkSpeed
 			if v then
 				if v < 100 then
 					speed = v
 				elseif v < 200 then
-					speed = v * 1.10
+					speed = v * 1.05
 				elseif v < 300 then
-					speed = v * 1.15
+					speed = v * 1.10
 				elseif v < 400 then
-					speed = v * 1.25
+					speed = v * 1.15
 				elseif v < 500 then
-					speed = v * 1.30
+					speed = v * 1.20
 				else
-					speed = v * 1.40
+					speed = v * 1.25
 				end
 			end
 		end)
@@ -1149,4 +1152,3 @@ return function(ctx)
 	note.TextYAlignment = Enum.TextYAlignment.Top
 	note.Parent = scriptPage
 end
-
