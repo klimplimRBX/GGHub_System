@@ -25,15 +25,15 @@ return function(ctx)
 				if v < 100 then
 					speed = v
 				elseif v < 200 then
-					speed = v * 1.10
-				elseif v < 300 then
 					speed = v * 1.25
-				elseif v < 400 then
+				elseif v < 300 then
 					speed = v * 1.50
+				elseif v < 400 then
+					speed = v * 2.00
 				elseif v < 500 then
-					speed = v * 1.70
+					speed = v * 2.25
 				else
-					speed = v * 1.10
+					speed = v * 1.50
 				end
 			end
 		end)
@@ -1152,4 +1152,5 @@ return function(ctx)
 	note.TextYAlignment = Enum.TextYAlignment.Top
 	note.Parent = scriptPage
 end
+
 
