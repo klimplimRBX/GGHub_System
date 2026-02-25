@@ -10,7 +10,9 @@ return function(ctx)
 	local Workspace = game:GetService("Workspace")
 	local VirtualInputManager = game:GetService("VirtualInputManager")
 	local UIS = game:GetService("UserInputService")
+
 	local isMobile = UIS.TouchEnabled and not UIS.KeyboardEnabled
+
 	local function getEventCurrencySpeed()
 		local speed = 1000
 		pcall(function()
@@ -20,6 +22,7 @@ return function(ctx)
 		end)
 		return speed
 	end
+
 	local AutoFarmDoomCoinEnabled = false
 	local AutoPressDoomButtonEnabled = false
 	local AutoCollectInfinityEnabled = false
@@ -30,6 +33,7 @@ return function(ctx)
 	local _towerTaskActive = false
 	local lastCollectedDoomCoin = nil
 	local towerPausedForCollector = false
+
 	table.insert(getgenv().__GGHub_Cleanup, function()
 		AutoFarmDoomCoinEnabled = false
 		AutoPressDoomButtonEnabled = false
@@ -42,6 +46,7 @@ return function(ctx)
 		towerPausedForCollector = false
 		workspace.Gravity = 196.2
 	end)
+
 	local moveLocked = false
 	local function acquireMoveLock()
 		while moveLocked do task.wait(0.02) end
@@ -50,10 +55,12 @@ return function(ctx)
 	local function releaseMoveLock()
 		moveLocked = false
 	end
+
 	LocalPlayer.CharacterAdded:Connect(function()
 		moveLocked = false
 		lastCollectedDoomCoin = nil
 	end)
+
 	local function getPosition(obj)
 		if obj:IsA("BasePart") then
 			return obj.Position
@@ -64,12 +71,14 @@ return function(ctx)
 		end
 		return nil
 	end
+
 	local function isCharacterAlive(root, humanoid)
 		if not root or not root.Parent then return false end
 		if not humanoid or not humanoid.Parent then return false end
 		if humanoid.Health <= 0 then return false end
 		return true
 	end
+
 	local function getCharacterRoots()
 		local character = LocalPlayer.Character
 		if not character then return nil, nil end
@@ -77,6 +86,7 @@ return function(ctx)
 		local humanoid = character:FindFirstChildOfClass("Humanoid")
 		return root, humanoid
 	end
+
 	local function waitForCharacterSafe()
 		local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 		local root = character:WaitForChild("HumanoidRootPart", 10)
@@ -92,10 +102,12 @@ return function(ctx)
 		task.wait(0.2)
 		return root, humanoid
 	end
+
 	local function flyToPos(targetPos, speed)
 		speed = speed or 4000
 		local root, humanoid = getCharacterRoots()
 		if not isCharacterAlive(root, humanoid) then return false end
+
 		while (root.Position - targetPos).Magnitude > 1.5 do
 			if not AutoPressDoomButtonEnabled and not AutoFarmDoomCoinEnabled then return false end
 			local dt = RunService.Heartbeat:Wait()
@@ -105,6 +117,7 @@ return function(ctx)
 			root.CFrame = root.CFrame + remaining.Unit * step
 			root.AssemblyLinearVelocity = Vector3.zero
 		end
+
 		if isCharacterAlive(root, humanoid) then
 			root.CFrame = CFrame.new(targetPos)
 			root.AssemblyLinearVelocity = Vector3.zero
@@ -112,9 +125,11 @@ return function(ctx)
 		end
 		return true
 	end
+
 	local function collectItem(targetPos, heightOffset)
 		local root = waitForCharacterSafe()
 		if not root then return end
+
 		acquireMoveLock()
 		local ok, err = pcall(function()
 			local spd = getEventCurrencySpeed()
@@ -127,19 +142,23 @@ return function(ctx)
 			task.wait(0.01)
 		end)
 		releaseMoveLock()
+
 		if not ok then warn("[collectItem] Movement error: " .. tostring(err)) end
 	end
+
 	local function switchToPC()
 		pcall(function()
 			LocalPlayer.DevComputerMovementMode = Enum.DevComputerMovementMode.KeyboardMouse
 			LocalPlayer.DevComputerCameraMode = Enum.DevComputerCameraMode.Classic
 		end)
 	end
+
 	local function switchToMobile()
 		pcall(function()
 			LocalPlayer.DevComputerMovementMode = Enum.DevComputerMovementMode.DynamicThumbstick
 		end)
 	end
+
 	local function unequipTool()
 		pcall(function()
 			local character = LocalPlayer.Character
@@ -148,6 +167,7 @@ return function(ctx)
 			if humanoid then humanoid:UnequipTools() end
 		end)
 	end
+
 	local function unequipTool()
 		pcall(function()
 			local character = LocalPlayer.Character
@@ -156,6 +176,7 @@ return function(ctx)
 			if humanoid then humanoid:UnequipTools() end
 		end)
 	end
+
 	local function activateNearestInstant()
 		local root = getCharacterRoots()
 		if not root then return end
@@ -195,7 +216,9 @@ return function(ctx)
 			end)
 		end
 	end
+
 	local towerStopGui = nil
+
 	local function showStopButton(onStop)
 		if towerStopGui then towerStopGui:Destroy() end
 		local sg = Instance.new("ScreenGui")
@@ -230,25 +253,16 @@ return function(ctx)
 		end)
 		towerStopGui = sg
 	end
+
 	local function hideStopButton()
 		if towerStopGui then
 			towerStopGui:Destroy()
 			towerStopGui = nil
 		end
 	end
+
 	local GuiService = game:GetService("GuiService")
-	local function isChoiceGuiVisible()
-		local ok = false
-		pcall(function()
-			local yesBtn = LocalPlayer.PlayerGui.ChoiceGui.Choice.Choices.Yes
-			ok = yesBtn ~= nil and yesBtn.Visible
-		end)
-		return ok
-	end
-	local function isTowerHUDGone()
-		local hud = LocalPlayer.PlayerGui:FindFirstChild("TowerTrialHUD")
-		return hud == nil or not hud.Enabled
-	end
+
 	local function clickYesButton()
 		local clicked = false
 		pcall(function()
@@ -278,13 +292,16 @@ return function(ctx)
 		end)
 		return clicked
 	end
+
 	local COLLECTOR_UNDER_Y = -20
 	local COLLECTOR_FLAT_Y = -0.5
 	local BASE_POS = Vector3.new(125, 3.3, 0)
+
 	local function genericFlyTo(targetPos, speed)
 		speed = speed or 1200
 		local root = getCharacterRoots()
 		if not root then return false end
+
 		while (root.Position - targetPos).Magnitude > 1.5 do
 			local dt = RunService.Heartbeat:Wait()
 			root = getCharacterRoots()
@@ -302,6 +319,7 @@ return function(ctx)
 		end
 		return true
 	end
+
 	local function goToBase(speed)
 		local root = getCharacterRoots()
 		if not root then return end
@@ -313,8 +331,10 @@ return function(ctx)
 			genericFlyTo(BASE_POS, speed)
 		end)
 	end
+
 	local function getTargets(brainrotTier, luckyNames)
 		local targets = {}
+
 		local activeBrainrots = Workspace:FindFirstChild("ActiveBrainrots")
 		if activeBrainrots then
 			local tierFolder = activeBrainrots:FindFirstChild(brainrotTier)
@@ -329,6 +349,7 @@ return function(ctx)
 				end
 			end
 		end
+
 		local activeLuckyBlocks = Workspace:FindFirstChild("ActiveLuckyBlocks")
 		if activeLuckyBlocks then
 			for _, name in ipairs(luckyNames) do
@@ -345,8 +366,10 @@ return function(ctx)
 				end
 			end
 		end
+
 		return targets
 	end
+
 	local INFINITY_LUCKY = {
 		"NaturalSpawnLuckyBlock_Infinity",
 		"EventSpawnLuckyBlock_Infinity",
@@ -362,13 +385,17 @@ return function(ctx)
 		"EventSpawnLuckyBlock_Celestial",
 		"AdminSpawnLuckyBlock_Celestial",
 	}
+
 	local function getInfinityTargets() return getTargets("Infinity", INFINITY_LUCKY) end
 	local function getDivineTargets() return getTargets("Divine", DIVINE_LUCKY) end
 	local function getCelestialTargets() return getTargets("Celestial", CELESTIAL_LUCKY) end
+
 	local function collectAndReturn(target, pos, speed)
 		local root = getCharacterRoots()
 		if not root then return false end
+
 		local collected = false
+
 		local noclipConn = RunService.Stepped:Connect(function()
 			local char = LocalPlayer.Character
 			if char then
@@ -379,7 +406,9 @@ return function(ctx)
 				end
 			end
 		end)
+
 		workspace.Gravity = 5
+
 		pcall(function()
 			genericFlyTo(Vector3.new(root.Position.X, COLLECTOR_UNDER_Y, root.Position.Z), speed)
 			task.wait(0.01)
@@ -387,6 +416,7 @@ return function(ctx)
 			task.wait(0.01)
 			genericFlyTo(Vector3.new(pos.X, COLLECTOR_FLAT_Y, pos.Z), speed)
 		end)
+
 		local beforeParent = target.Parent
 		local attempts = 0
 		while attempts < 10 do
@@ -410,7 +440,9 @@ return function(ctx)
 			end)
 			task.wait(3)
 		end
+
 		goToBase(speed)
+
 		noclipConn:Disconnect()
 		for _, part in ipairs((LocalPlayer.Character or {}):GetDescendants()) do
 			if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
@@ -418,10 +450,12 @@ return function(ctx)
 				end
 		end
 		workspace.Gravity = 196.2
+
 		task.wait(1)
 		unequipTool()
 		return collected
 	end
+
 	task.spawn(function()
 		while true do
 			task.wait(1)
@@ -443,6 +477,7 @@ return function(ctx)
 			end
 		end
 	end)
+
 	task.spawn(function()
 		while true do
 			task.wait(1)
@@ -464,6 +499,7 @@ return function(ctx)
 			end
 		end
 	end)
+
 	task.spawn(function()
 		while true do
 			task.wait(1)
@@ -488,6 +524,7 @@ return function(ctx)
 			end
 		end
 	end)
+
 	task.spawn(function()
 		while true do
 			if AutoFarmDoomCoinEnabled then
@@ -508,6 +545,7 @@ return function(ctx)
 								end
 							end
 						end
+
 						if #coins > 0 then
 							table.sort(coins, function(a, b) return a.dist < b.dist end)
 							local target = nil
@@ -530,6 +568,7 @@ return function(ctx)
 			task.wait(0.02)
 		end
 	end)
+
 	createToggle(scriptPage, "Auto Farm Doom Coins", "Auto Farms Doom Coins for ya", function(state)
 		AutoFarmDoomCoinEnabled = state
 		lastCollectedDoomCoin = nil
@@ -539,7 +578,9 @@ return function(ctx)
 			showNotification("Auto Farm Doom Coins Disabled")
 		end
 	end)
+
 	local doomButtonsBusy = false
+
 	task.spawn(function()
 		while true do
 			task.wait(0.3)
@@ -583,6 +624,7 @@ return function(ctx)
 			end
 		end
 	end)
+
 	createToggle(scriptPage, "Auto press Doom buttons", "Auto presses Doom event buttons for you", function(state)
 		AutoPressDoomButtonEnabled = state
 		if state then
@@ -591,6 +633,7 @@ return function(ctx)
 			showNotification("Auto press Doom buttons Disabled")
 		end
 	end)
+
 	createToggle(scriptPage, "Auto Collect Infinity", "ye that will probably never happen but ok", function(state)
 		AutoCollectInfinityEnabled = state
 		if state then
@@ -599,6 +642,7 @@ return function(ctx)
 			showNotification("Auto Collect Infinity Disabled")
 		end
 	end)
+
 	createToggle(scriptPage, "Auto Collect Divine", "Auto goes to any divine Brainrot/Lucky Block and collects it", function(state)
 		AutoCollectDivineEnabled = state
 		if state then
@@ -607,6 +651,7 @@ return function(ctx)
 			showNotification("Auto Collect Divine Disabled")
 		end
 	end)
+
 	createToggle(scriptPage, "Auto Collect Celestial", "Auto goes to any celestial and grabs it and returns to your base", function(state)
 		AutoCollectCelestialEnabled = state
 		if state then
@@ -615,6 +660,7 @@ return function(ctx)
 			showNotification("Auto Collect Celestial Disabled")
 		end
 	end)
+
 	createButton(scriptPage, "Auto Complete Tower", "Completes the Tower Automatically for you", function()
 		if AutoDoomTowerEnabled or AutoDoomTowerRunning then
 			AutoDoomTowerEnabled = false
@@ -624,7 +670,9 @@ return function(ctx)
 			showNotification("Auto Tower stopped.")
 			return
 		end
+
 		if _towerTaskActive then showNotification("Tower already running!") return end
+
 		AutoDoomTowerEnabled = true
 		showNotification("Starting...")
 		showStopButton(function()
@@ -634,21 +682,25 @@ return function(ctx)
 			hideStopButton()
 			showNotification("Auto Tower stopped.")
 		end)
+
 		_towerTaskActive = true
 		task.spawn(function()
 			while AutoDoomTowerEnabled do
 				AutoDoomTowerRunning = true
 				workspace.Gravity = 5
+
 				local TOWER_POS = Vector3.new(4325, 6.3, -2.5)
 				local TOWER_UNDER_Y = -20
 				local BRAINROT_UNDER_Y = -20
 				local BRAINROT_FLAT_Y = -0.5
 				local flySpeed = 1200
+
 				pcall(function()
 					local val = LocalPlayer.PlayerGui.BottomLeft.JumpAndSpeed.Container.EventCurrency.Value
 					local speed = tonumber(val.Text)
 					if speed then flySpeed = (speed * 2.5) - 50 end
 				end)
+
 				local noclipConn
 				noclipConn = RunService.Stepped:Connect(function()
 					if not AutoDoomTowerRunning then
@@ -667,6 +719,7 @@ return function(ctx)
 				table.insert(getgenv().__GGHub_Cleanup, function()
 					if noclipConn then noclipConn:Disconnect() end
 				end)
+
 				local function towerFlyTo(targetPos, speed)
 					speed = speed or 1200
 					local root, humanoid = getCharacterRoots()
@@ -700,14 +753,17 @@ return function(ctx)
 					end
 					return true
 				end
+
 				local cycleComplete = false
 				local cycleError = false
+
 				local function stopCycle(msg)
 					AutoDoomTowerRunning = false
 					workspace.Gravity = 196.2
 					if noclipConn then noclipConn:Disconnect() end
 					if msg then showNotification(msg) end
 				end
+
 				local function handlePauseForCollector()
 					if not towerPausedForCollector then return true end
 					releaseMoveLock()
@@ -729,6 +785,7 @@ return function(ctx)
 					releaseMoveLock()
 					return true
 				end
+
 				do
 					local root = getCharacterRoots()
 					if not root then
@@ -746,6 +803,7 @@ return function(ctx)
 								if reached then reached = towerFlyTo(TOWER_POS, flySpeed) end
 							end)
 							releaseMoveLock()
+
 							if not reached or not AutoDoomTowerRunning then
 								stopCycle()
 								cycleError = true
@@ -759,6 +817,7 @@ return function(ctx)
 						end
 					end
 				end
+
 				local towerPrompt
 				if not cycleError then
 					pcall(function()
@@ -769,6 +828,7 @@ return function(ctx)
 						cycleError = true
 					end
 				end
+
 				if not cycleError then
 					local root = getCharacterRoots()
 					if not root then
@@ -807,8 +867,9 @@ return function(ctx)
 						end
 					end
 				end
+
 				local trialBar, requirementLabel, depositsLabel, foundKeyword
-				local hudConfirmed = false
+
 				if not cycleError then
 					task.wait(4)
 					pcall(function()
@@ -818,7 +879,6 @@ return function(ctx)
 						stopCycle("Something went wrong")
 						cycleError = true
 					else
-						hudConfirmed = true
 						requirementLabel = trialBar:FindFirstChild("Requirement")
 						depositsLabel = trialBar:FindFirstChild("Deposits")
 						if not requirementLabel or not depositsLabel then
@@ -827,6 +887,7 @@ return function(ctx)
 						end
 					end
 				end
+
 				if not cycleError then
 					local keywords = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Secret"}
 					local elapsed = 0
@@ -847,82 +908,33 @@ return function(ctx)
 						cycleError = true
 					end
 				end
+
 				if not cycleError then
 					local keywords = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Secret"}
-					local function claimTowerReward()
-						cycleComplete = true
-						AutoDoomTowerRunning = false
-						workspace.Gravity = 196.2
-						if noclipConn then noclipConn:Disconnect() end
-						task.wait(3)
-						local root2 = getCharacterRoots()
-						if root2 then
-							root2.CFrame = CFrame.new(TOWER_POS)
-							root2.AssemblyLinearVelocity = Vector3.zero
-						end
-						pcall(function()
-							towerPrompt.RequiresLineOfSight = false
-							towerPrompt.MaxActivationDistance = 32
-							pcall(fireproximityprompt, towerPrompt)
-							task.wait(0.3)
-							towerPrompt:InputHoldBegin()
-							task.wait(0.5)
-							towerPrompt:InputHoldEnd()
-							pcall(fireproximityprompt, towerPrompt)
-						end)
-						task.wait(0.5)
-						for _i = 1, 10 do
-							if clickYesButton() then break end
-							task.wait(0.3)
-						end
-						if isMobile then switchToMobile() end
-						showNotification("Tower complete! Cooldown: 5:15")
-					end
+
 					while AutoDoomTowerRunning and AutoDoomTowerEnabled do
 						pcall(function()
 							local val = LocalPlayer.PlayerGui.BottomLeft.JumpAndSpeed.Container.EventCurrency.Value
 							local speed = tonumber(val.Text)
 							if speed then flySpeed = (speed * 2.5) - 50 end
 						end)
-						if isChoiceGuiVisible() then
-							showNotification("Claim dialog detected, claiming reward...")
-							claimTowerReward()
-							break
-						end
-						if hudConfirmed and isTowerHUDGone() then
-							showNotification("Tower HUD gone, entering cooldown...")
-							cycleComplete = true
-							AutoDoomTowerRunning = false
-							workspace.Gravity = 196.2
-							if noclipConn then noclipConn:Disconnect() end
-							if isMobile then switchToMobile() end
-							showNotification("Tower complete! Cooldown: 5:15")
-							break
-						end
-						local _depCurrent, _depMax = 0, 10
-						pcall(function()
-							local c, m = depositsLabel.Text:match("(%d+)/(%d+)")
-							_depCurrent = tonumber(c) or 0
-							_depMax = tonumber(m) or 10
-						end)
-						if _depCurrent >= _depMax then
-							showNotification("Deposits already full, claiming...")
-							claimTowerReward()
-							break
-						end
+
 						local pauseOk = handlePauseForCollector()
 						if not pauseOk then break end
+
 						local brainrotFolder = workspace:FindFirstChild("ActiveBrainrots")
 						if not brainrotFolder then
 							stopCycle("ActiveBrainrots not found!")
 							break
 						end
+
 						local keywordFolder = brainrotFolder:FindFirstChild(foundKeyword)
 						if not keywordFolder then
 							showNotification(foundKeyword .. " folder not found!")
 							stopCycle()
 							break
 						end
+
 						local renderedList = {}
 						for _, child in ipairs(keywordFolder:GetChildren()) do
 							if child.Name == "RenderedBrainrot" then
@@ -934,11 +946,14 @@ return function(ctx)
 							task.wait(1)
 							continue
 						end
+
 						local collected = false
 						local attempts = 0
+
 						while not collected and AutoDoomTowerRunning and attempts < #renderedList do
 							attempts = attempts + 1
 							if towerPausedForCollector then break end
+
 							local idx = math.random(1, #renderedList)
 							local target = renderedList[idx]
 							if not target or not target.Parent then
@@ -947,6 +962,7 @@ return function(ctx)
 							end
 							local pos = getPosition(target)
 							if not pos then continue end
+
 							acquireMoveLock()
 							local flyOk = false
 							pcall(function()
@@ -959,8 +975,10 @@ return function(ctx)
 								if flyOk then flyOk = towerFlyTo(Vector3.new(pos.X, BRAINROT_FLAT_Y, pos.Z), flySpeed) end
 							end)
 							releaseMoveLock()
+
 							if not flyOk or towerPausedForCollector then break end
 							if not target.Parent then continue end
+
 							local _before = target.Parent
 							for _p = 1, 10 do
 								pcall(activateNearestInstant)
@@ -984,10 +1002,12 @@ return function(ctx)
 								break
 							end
 						end
+
 						if not collected or towerPausedForCollector then
 							task.wait(0.5)
 							continue
 						end
+
 						acquireMoveLock()
 						pcall(function()
 							local root = getCharacterRoots()
@@ -999,6 +1019,7 @@ return function(ctx)
 							towerFlyTo(TOWER_POS, flySpeed)
 						end)
 						releaseMoveLock()
+
 						task.wait(0.5)
 						local root = getCharacterRoots()
 						if root then
@@ -1008,14 +1029,72 @@ return function(ctx)
 						end
 						task.wait(0.3)
 						pcall(activateNearestInstant)
+
 						task.wait(4)
+
 						local current, max = depositsLabel.Text:match("(%d+)/(%d+)")
 						current = tonumber(current) or 0
 						max = tonumber(max) or 10
+
 						if current >= max then
-							claimTowerReward()
+							cycleComplete = true
+							AutoDoomTowerRunning = false
+							workspace.Gravity = 196.2
+							if noclipConn then noclipConn:Disconnect() end
+
+							task.wait(3)
+
+							local root2 = getCharacterRoots()
+							if root2 then
+								root2.CFrame = CFrame.new(TOWER_POS)
+								root2.AssemblyLinearVelocity = Vector3.zero
+							end
+
+							pcall(function()
+								towerPrompt.RequiresLineOfSight = false
+								towerPrompt.MaxActivationDistance = 32
+								pcall(fireproximityprompt, towerPrompt)
+								task.wait(0.3)
+								towerPrompt:InputHoldBegin()
+								task.wait(0.5)
+								towerPrompt:InputHoldEnd()
+								pcall(fireproximityprompt, towerPrompt)
+							end)
+
+							task.wait(0.5)
+
+							for i = 1, 10 do
+								if clickYesButton() then break end
+								task.wait(0.3)
+							end
+
+							if isMobile then
+								switchToMobile()
+							end
+
+							showNotification("Tower complete! Cooldown: 5:15")
 							break
 						end
+
+						local nextFolder = workspace:FindFirstChild("ActiveBrainrots") and workspace.ActiveBrainrots:FindFirstChild(foundKeyword)
+						local nextCount = 0
+						if nextFolder then
+							for _, child in ipairs(nextFolder:GetChildren()) do
+								if child.Name == "RenderedBrainrot" then
+									nextCount = nextCount + 1
+								end
+							end
+						end
+						if nextCount == 0 then
+							cycleComplete = true
+							AutoDoomTowerRunning = false
+							workspace.Gravity = 196.2
+							if noclipConn then noclipConn:Disconnect() end
+							if isMobile then switchToMobile() end
+							showNotification("No brainrots available. Tower cooldown: 5:15")
+							break
+						end
+
 						local newKeyword
 						for _, kw in ipairs(keywords) do
 							if requirementLabel.Text:find(kw) then
@@ -1026,28 +1105,34 @@ return function(ctx)
 						if newKeyword and newKeyword ~= foundKeyword then
 							foundKeyword = newKeyword
 						end
+
 						task.wait(0.1)
 					end
 				end
+
 				if not cycleComplete then
 					AutoDoomTowerEnabled = false
 					hideStopButton()
 					break
 				end
+
 				local cooldown = 315
 				while cooldown > 0 and AutoDoomTowerEnabled do
 					task.wait(1)
 					cooldown = cooldown - 1
 				end
+
 				if not AutoDoomTowerEnabled then
 					hideStopButton()
 					break
 				end
+
 				showNotification("Restarting Auto Tower...")
 			end
 			_towerTaskActive = false
 		end)
 	end)
+
 	local note = Instance.new("TextLabel")
 	note.Text = "Note: Use the auto collect functions to auto collect your rewards. Also in mobile It changes to keyboard, so change that on the Roblox settings when you don't want to farm anymore. Also make sure the tower is avaiable when you activate the auto doom tower for the first time, then it auto does it."
 	note.Size = UDim2.new(1, -20, 0, 30)
