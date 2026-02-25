@@ -287,12 +287,25 @@ return function(ctx)
 	local function clickYesButton()
 		local clicked = false
 		pcall(function()
-			local yesBtn = LocalPlayer.PlayerGui.ChoiceGui.Choice.Choices.Yes
-			if yesBtn and yesBtn.Visible and yesBtn.AbsoluteSize.X > 0 then
-				firesignal(yesBtn.MouseButton1Click)
-				task.wait(0.05)
-				firesignal(yesBtn.Activated)
-				clicked = true
+			local choices = LocalPlayer.PlayerGui.ChoiceGui.Choice.Choices
+			local yesBtn = choices:FindFirstChild("Yes")
+			if not yesBtn then
+				for _, child in ipairs(choices:GetChildren()) do
+					if child.Name:lower():find("normal") or child.Name:lower():find("yes") then
+						yesBtn = child
+						break
+					end
+				end
+			end
+			if yesBtn then
+				local btn = yesBtn:IsA("TextButton") and yesBtn or yesBtn:FindFirstChildWhichIsA("TextButton", true)
+				if btn and btn.Visible then
+					pcall(function() btn:Activate() end)
+					pcall(function() firesignal(btn.MouseButton1Click) end)
+					pcall(function() firesignal(btn.Activated) end)
+					pcall(function() fireproximityprompt(btn) end)
+					clicked = true
+				end
 			end
 		end)
 		return clicked
@@ -912,7 +925,19 @@ return function(ctx)
 						end
 						if not foundKeyword then
 							showNotification("Waiting for Tower requirement...")
-							task.wait(10)
+							pcall(function()
+								towerPrompt.RequiresLineOfSight = false
+								towerPrompt.MaxActivationDistance = 32
+								pcall(fireproximityprompt, towerPrompt)
+								task.wait(0.1)
+								towerPrompt:InputHoldBegin()
+								VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+								task.wait(2.5)
+								VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+								towerPrompt:InputHoldEnd()
+								pcall(fireproximityprompt, towerPrompt)
+							end)
+							task.wait(3)
 						end
 					end
 					if not AutoDoomTowerEnabled then
@@ -1141,8 +1166,8 @@ return function(ctx)
 	end)
 
 	local note = Instance.new("TextLabel")
-	note.Text = "Note: Use the auto collect functions to auto collect your rewards. Also in mobile It changes to keyboard, so change that on the Roblox settings when you don't want to farm anymore. Also make sure the tower is avaiable when you activate the auto doom tower for the first time, then it auto does it."
-	note.Size = UDim2.new(1, -20, 0, 30)
+	note.Text = "Note: Use the auto collect functions to auto collect your rewards. Also in mobile It changes to keyboard, so change back to touch in roblox settings"
+	note.Size = UDim2.new(1, -20, 0, 10)
 	note.BackgroundTransparency = 1
 	note.TextColor3 = Color3.fromRGB(250, 250, 250)
 	note.Font = Enum.Font.Gotham
@@ -1152,6 +1177,3 @@ return function(ctx)
 	note.TextYAlignment = Enum.TextYAlignment.Top
 	note.Parent = scriptPage
 end
-
-
-
