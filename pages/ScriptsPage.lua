@@ -217,48 +217,6 @@ return function(ctx)
 		end
 	end
 
-	local HttpService = game:GetService("HttpService")
-	local TOWER_SYS_PATH = "GGHub/TowerSys.json"
-	local towerYesPos = nil
-
-	pcall(function()
-		if isfile(TOWER_SYS_PATH) then
-			local data = HttpService:JSONDecode(readfile(TOWER_SYS_PATH))
-			if data and data.yesX and data.yesY then
-				towerYesPos = {x = data.yesX, y = data.yesY}
-			end
-		end
-	end)
-
-	local function saveTowerYesPos(x, y)
-		pcall(function()
-			if not isfolder("GGHub") then makefolder("GGHub") end
-			writefile(TOWER_SYS_PATH, HttpService:JSONEncode({yesX = x, yesY = y}))
-		end)
-	end
-
-	local towerYesLearning = false
-	local towerYesConn = nil
-
-	local function startLearningYesClick()
-		towerYesLearning = true
-		if towerYesConn then towerYesConn:Disconnect() end
-		towerYesConn = UIS.InputBegan:Connect(function(input)
-			if not towerYesLearning then
-				towerYesConn:Disconnect()
-				return
-			end
-			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-				local pos = input.Position
-				towerYesPos = {x = pos.X, y = pos.Y}
-				saveTowerYesPos(pos.X, pos.Y)
-				towerYesLearning = false
-				towerYesConn:Disconnect()
-				showNotification("Yes button position saved!")
-			end
-		end)
-	end
-
 	local towerStopGui = nil
 
 	local function showStopButton(onStop)
@@ -1105,20 +1063,9 @@ return function(ctx)
 
 							task.wait(0.5)
 
-							if not towerYesPos then
-								showNotification("Tower done! Click YES now to save the position.")
-								startLearningYesClick()
-								local _elapsed = 0
-								while towerYesLearning and _elapsed < 30 do
-									task.wait(0.1)
-									_elapsed = _elapsed + 0.1
-								end
-								towerYesLearning = false
-							else
-								for i = 1, 10 do
-									if clickYesButton() then break end
-									task.wait(0.3)
-								end
+							for i = 1, 10 do
+								if clickYesButton() then break end
+								task.wait(0.3)
 							end
 
 							if isMobile then
@@ -1168,10 +1115,10 @@ return function(ctx)
 	end)
 
 	local note = Instance.new("TextLabel")
-	note.Text = "Note: Use the auto collect functions to auto collect your rewards. Also in mobile It changes to keyboard, so change that on the Roblox settings when you don't want to farm anymore. Also make sure the tower is avaiable when you activate the auto doom tower for the first time, then it auto does it infinitely"
-	note.Size = UDim2.new(1, -20, 0, 30)
+	note.Text = "Note: Use the auto collect functions to auto collect your rewards, If this is your first time using it, wait until It finishes since It needs your help to define a function, also in mobile It changes to keyboard, so change that on the Roblox settings when you din't want to farm anymore. Also make sure the tower is avaiable when you activate the auto doom tower for the first time, then it auto does it."
+	note.Size = UDim2.new(1, -20, 0, 40)
 	note.BackgroundTransparency = 1
-	note.TextColor3 = Color3.fromRGB(256, 256, 256)
+	note.TextColor3 = Color3.fromRGB(250, 250, 250)
 	note.Font = Enum.Font.Gotham
 	note.TextSize = 10
 	note.TextWrapped = true
