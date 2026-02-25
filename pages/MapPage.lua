@@ -36,7 +36,21 @@ return function(ctx)
 		pcall(function()
 			local val = LocalPlayer.PlayerGui.BottomLeft.JumpAndSpeed.Container.EventCurrency.Value
 			local v = tonumber(val.Text)
-			if v then speed = v * 1.75 end
+			if v then
+				if v < 100 then
+					speed = v
+				elseif v < 200 then
+					speed = v * 1.05
+				elseif v < 300 then
+					speed = v * 1.10
+				elseif v < 400 then
+					speed = v * 1.15
+				elseif v < 500 then
+					speed = v * 1.20
+				else
+					speed = v * 1.25
+				end
+			end
 		end)
 		return speed
 	end
