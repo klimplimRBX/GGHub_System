@@ -303,17 +303,25 @@ return function(ctx)
 		end
 	end
 
+	local GuiService = game:GetService("GuiService")
+
 	local function clickYesButton()
 		local clicked = false
 		pcall(function()
+			local inset = GuiService:GetGuiInset()
 			for _, obj in ipairs(LocalPlayer.PlayerGui:GetDescendants()) do
 				if obj:IsA("TextButton") and obj.Text == "Yes" and obj.Visible and obj.AbsoluteSize.X > 0 then
-					local center = obj.AbsolutePosition + obj.AbsoluteSize / 2
-					local cx, cy = math.floor(center.X), math.floor(center.Y)
+					local center = obj.AbsolutePosition + obj.AbsoluteSize * 0.5
+					local cx = math.floor(center.X)
+					local cy = math.floor(center.Y + inset.Y)
 					if mousemoveabs then
 						mousemoveabs(cx, cy)
-						task.wait(0.08)
-						mouse1click()
+						task.wait(0.1)
+						mouse1press()
+						task.wait(0.05)
+						mouse1release()
+						clicked = true
+						return
 					end
 					VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, true, game, 0)
 					task.wait(0.05)
@@ -323,20 +331,7 @@ return function(ctx)
 				end
 			end
 		end)
-		if clicked then return true end
-		if towerYesPos then
-			local cx, cy = towerYesPos.x, towerYesPos.y
-			if mousemoveabs then
-				mousemoveabs(cx, cy)
-				task.wait(0.08)
-				mouse1click()
-			end
-			VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, true, game, 0)
-			task.wait(0.05)
-			VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, false, game, 0)
-			return true
-		end
-		return false
+		return clicked
 	end
 
 	local COLLECTOR_UNDER_Y = -20
@@ -626,22 +621,6 @@ return function(ctx)
 	end)
 
 	local doomButtonsBusy = false
-
-	task.spawn(function()
-		RunService.Heartbeat:Connect(function()
-			if AutoPressDoomButtonEnabled and not doomButtonsBusy then
-				local root = getCharacterRoots()
-				if root then
-					local pos = root.Position
-					if pos.Y ~= -25 then
-						root.CFrame = CFrame.new(pos.X, -25, pos.Z)
-						root.AssemblyLinearVelocity = Vector3.zero
-						root.AssemblyAngularVelocity = Vector3.zero
-					end
-				end
-			end
-		end)
-	end)
 
 	task.spawn(function()
 		while true do
@@ -1145,7 +1124,6 @@ return function(ctx)
 								switchToMobile()
 							end
 
-							hideStopButton()
 							showNotification("Tower complete! Cooldown: 5:15")
 							break
 						end
@@ -1166,17 +1144,25 @@ return function(ctx)
 				end
 
 				if not cycleComplete then
-					hideStopButton()
 					AutoDoomTowerEnabled = false
+					hideStopButton()
 					break
 				end
 
-				task.wait(315)
-
-				if AutoDoomTowerEnabled then
-					showNotification("Restarting Auto Tower...")
+				local cooldown = 315
+				while cooldown > 0 and AutoDoomTowerEnabled do
+					task.wait(1)
+					cooldown = cooldown - 1
 				end
+
+				if not AutoDoomTowerEnabled then
+					hideStopButton()
+					break
+				end
+
+				showNotification("Restarting Auto Tower...")
 			end
+			_towerTaskActive = false
 		end)
 	end)
 
