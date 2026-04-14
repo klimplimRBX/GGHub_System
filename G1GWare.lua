@@ -25,7 +25,7 @@ local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
-local BASE_URL = "https://raw.githubusercontent.com/klimplimRBX/GGHub_GAG/main/"
+local BASE_URL = "https://raw.githubusercontent.com/klimplimRBX/GGHub_System/main/"
 
 local function loadModule(path)
 	return loadstring(game:HttpGet(BASE_URL .. path))()
