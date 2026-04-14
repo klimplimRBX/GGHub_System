@@ -5,7 +5,7 @@
        from here and using then on your own script
 ]]--
 
--- ============= GGHub v0.9 (Animated btw because i'm proud of this now) ===============
+-- ============= GGHub v1.0 (Animated btw because i'm proud of this now) ===============
 
 if getgenv().__GGHub_Running then
 	if getgenv().__GGHub_Notify then
@@ -25,7 +25,7 @@ local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
-local BASE_URL = "https://raw.githubusercontent.com/klimplimRBX/GGHub_GAG/main/"
+local BASE_URL = "https://raw.githubusercontent.com/klimplimRBX/GGHub_System/main/"
 
 local function loadModule(path)
 	return loadstring(game:HttpGet(BASE_URL .. path))()
